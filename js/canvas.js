@@ -46,6 +46,11 @@ class SheetCanvasRenderer {
       dieCutStyle: 'solid',
       dieCutOffset: 2.5, 
 
+      artworkFit: 'contain',
+      artworkScale: 1.0,
+      artworkOffsetX: 0,
+      artworkOffsetY: 0, 
+
       stickerFillColor: '#ffffff',
       stickerFillOpacity: 0.95,
       cutLineColor: '#ef4444', 
@@ -208,6 +213,19 @@ class SheetCanvasRenderer {
   _findStickerAt(xMm, yMm) {
     if (!this.layoutData || !this.layoutData.stickers) return null;
     return this.layoutData.stickers.find(s => {
+      if (s.shape === 'circle') {
+        const cx = s.x + s.width / 2;
+        const cy = s.y + s.height / 2;
+        const r = Math.min(s.width, s.height) / 2;
+        return Math.hypot(xMm - cx, yMm - cy) <= r;
+      } else if (s.shape === 'oval') {
+        const cx = s.x + s.width / 2;
+        const cy = s.y + s.height / 2;
+        const rx = s.width / 2;
+        const ry = s.height / 2;
+        if (rx <= 0 || ry <= 0) return false;
+        return (((xMm - cx) ** 2) / (rx ** 2) + ((yMm - cy) ** 2) / (ry ** 2)) <= 1;
+      }
       return xMm >= s.x && xMm <= (s.x + s.width) && yMm >= s.y && yMm <= (s.y + s.height);
     }) || null;
   }
@@ -545,19 +563,7 @@ class SheetCanvasRenderer {
       this._renderMaterialFace(ctx, sx, sy, sw, sh, shape, cr, material);
 
       if (this.artworkLoaded && this.artworkImage) {
-        ctx.save();
-        this._createStickerPath(ctx, sx, sy, sw, sh, shape, cr);
-        ctx.clip();
-
-        const img = this.artworkImage;
-        if (sticker.rotated) {
-          ctx.translate(sx + sw / 2, sy + sh / 2);
-          ctx.rotate(Math.PI / 2);
-          ctx.drawImage(img, -sh / 2, -sw / 2, sh, sw);
-        } else {
-          ctx.drawImage(img, sx, sy, sw, sh);
-        }
-        ctx.restore();
+        this._drawArtwork(ctx, sx, sy, sw, sh, shape, cr, sticker.rotated);
       }
 
       this._renderMaterialOverlays(ctx, sx, sy, sw, sh, shape, cr, material);
@@ -678,15 +684,84 @@ class SheetCanvasRenderer {
       this._createStickerPath(ctx, x, y, w, h, shape, cr);
       ctx.clip();
 
+      const alpha1 = this.artworkLoaded ? 0.12 : 0.35;
+      const alpha2 = this.artworkLoaded ? 0.03 : 0.08;
       const glossGrad = ctx.createLinearGradient(x, y, x + w * 0.6, y + h * 0.6);
-      glossGrad.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
-      glossGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.08)');
+      glossGrad.addColorStop(0, `rgba(255, 255, 255, ${alpha1})`);
+      glossGrad.addColorStop(0.5, `rgba(255, 255, 255, ${alpha2})`);
       glossGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
       ctx.fillStyle = glossGrad;
       ctx.fillRect(x, y, w, h);
       ctx.restore();
     }
+  }
+
+  _drawArtwork(ctx, sx, sy, sw, sh, shape, cr, isRotated) {
+    if (!this.artworkLoaded || !this.artworkImage) return;
+
+    ctx.save();
+    this._createStickerPath(ctx, sx, sy, sw, sh, shape, cr);
+    ctx.clip();
+
+    const img = this.artworkImage;
+    const imgW = img.naturalWidth || img.width || 1;
+    const imgH = img.naturalHeight || img.height || 1;
+    const imgAspect = imgW / imgH;
+
+    const fit = this.settings.artworkFit || 'contain';
+    const userScale = typeof this.settings.artworkScale === 'number' ? this.settings.artworkScale : 1.0;
+    const userOffX = (this.settings.artworkOffsetX || 0) * this.scale;
+    const userOffY = (this.settings.artworkOffsetY || 0) * this.scale;
+
+    const boxW = isRotated ? sh : sw;
+    const boxH = isRotated ? sw : sh;
+    const boxAspect = boxW / boxH;
+
+    let targetW, targetH;
+
+    if (fit === 'contain') {
+      if (shape === 'circle') {
+        const maxDim = Math.min(boxW, boxH);
+        const maxH = maxDim / Math.sqrt(imgAspect * imgAspect + 1);
+        targetH = maxH;
+        targetW = maxH * imgAspect;
+      } else {
+        if (imgAspect > boxAspect) {
+          targetW = boxW;
+          targetH = boxW / imgAspect;
+        } else {
+          targetH = boxH;
+          targetW = boxH * imgAspect;
+        }
+      }
+    } else if (fit === 'cover') {
+      if (imgAspect > boxAspect) {
+        targetH = boxH;
+        targetW = boxH * imgAspect;
+      } else {
+        targetW = boxW;
+        targetH = boxW / imgAspect;
+      }
+    } else {
+      targetW = boxW;
+      targetH = boxH;
+    }
+
+    targetW *= userScale;
+    targetH *= userScale;
+
+    if (isRotated) {
+      ctx.translate(sx + sw / 2, sy + sh / 2);
+      ctx.rotate(Math.PI / 2);
+      ctx.drawImage(img, -targetW / 2 + userOffX, -targetH / 2 + userOffY, targetW, targetH);
+    } else {
+      const drawX = sx + (sw - targetW) / 2 + userOffX;
+      const drawY = sy + (sh - targetH) / 2 + userOffY;
+      ctx.drawImage(img, drawX, drawY, targetW, targetH);
+    }
+
+    ctx.restore();
   }
 
   _createStickerPath(ctx, x, y, w, h, shape, cornerRadius = 0) {

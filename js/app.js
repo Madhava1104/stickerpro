@@ -360,6 +360,10 @@ class StickerApp {
     }
 
     bindSettingToggle('showDieCutToggle', 'showDieCut');
+    document.getElementById('showDieCutToggle')?.addEventListener('change', () => {
+      this._checkDieCutOverlap();
+    });
+
     bindSettingVal('dieCutColorInput', 'dieCutColor');
     const dieOffEl = document.getElementById('dieCutOffsetInput');
     if (dieOffEl) {
@@ -368,8 +372,13 @@ class StickerApp {
         this.config.dieCutOffset = val;
         this.renderer.updateSettings({ dieCutOffset: val });
         this.recalculate();
+        this._checkDieCutOverlap();
       });
     }
+
+    document.getElementById('autoFixGapBtn')?.addEventListener('click', () => {
+      this._autoFixDieCutGap();
+    });
 
     bindSettingToggle('showKissCutToggle', 'showKissCut');
     bindSettingVal('kissCutStyleSelect', 'kissCutStyle');
@@ -397,6 +406,12 @@ class StickerApp {
     const artworkInput = document.getElementById('artworkFileInput');
     const dropzone = document.getElementById('artworkDropzone');
     const removeArtworkBtn = document.getElementById('removeArtworkBtn');
+    const artworkPanel = document.getElementById('artworkControlsPanel');
+    const fitSelect = document.getElementById('artworkFitSelect');
+    const scaleInput = document.getElementById('artworkScaleInput');
+    const scaleValSpan = document.getElementById('artworkScaleVal');
+    const offXInput = document.getElementById('artworkOffsetXInput');
+    const offYInput = document.getElementById('artworkOffsetYInput');
 
     if (dropzone && artworkInput) {
       dropzone.addEventListener('click', () => artworkInput.click());
@@ -422,12 +437,63 @@ class StickerApp {
       });
     }
 
+    if (fitSelect) {
+      fitSelect.addEventListener('change', (e) => {
+        this.renderer.updateSettings({ artworkFit: e.target.value });
+        this._saveToStorage();
+      });
+    }
+
+    if (scaleInput) {
+      scaleInput.addEventListener('input', (e) => {
+        const pct = parseInt(e.target.value) || 100;
+        if (scaleValSpan) scaleValSpan.textContent = `${pct}%`;
+        this.renderer.updateSettings({ artworkScale: pct / 100 });
+        this._saveToStorage();
+      });
+    }
+
+    if (offXInput) {
+      offXInput.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0;
+        this.renderer.updateSettings({ artworkOffsetX: val });
+        this._saveToStorage();
+      });
+    }
+
+    if (offYInput) {
+      offYInput.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value) || 0;
+        this.renderer.updateSettings({ artworkOffsetY: val });
+        this._saveToStorage();
+      });
+    }
+
+    const resetTransformBtn = document.getElementById('resetArtworkTransformBtn');
+    if (resetTransformBtn) {
+      resetTransformBtn.addEventListener('click', () => {
+        if (fitSelect) fitSelect.value = 'contain';
+        if (scaleInput) scaleInput.value = 100;
+        if (scaleValSpan) scaleValSpan.textContent = '100%';
+        if (offXInput) offXInput.value = 0;
+        if (offYInput) offYInput.value = 0;
+        this.renderer.updateSettings({
+          artworkFit: 'contain',
+          artworkScale: 1.0,
+          artworkOffsetX: 0,
+          artworkOffsetY: 0
+        });
+        this._saveToStorage();
+      });
+    }
+
     if (removeArtworkBtn) {
       removeArtworkBtn.addEventListener('click', () => {
         this.renderer.setArtwork(null);
         if (artworkInput) artworkInput.value = '';
-        removeArtworkBtn.style.display = 'none';
+        if (artworkPanel) artworkPanel.style.display = 'none';
         if (dropzone) dropzone.querySelector('span').textContent = 'Click or drag sticker artwork (PNG, JPG, SVG)';
+        this._saveToStorage();
       });
     }
 
@@ -530,6 +596,8 @@ class StickerApp {
       this.renderer.setArtwork(e.target.result);
       const removeBtn = document.getElementById('removeArtworkBtn');
       if (removeBtn) removeBtn.style.display = 'inline-flex';
+      const panel = document.getElementById('artworkControlsPanel');
+      if (panel) panel.style.display = 'block';
       const dropzone = document.getElementById('artworkDropzone');
       if (dropzone) dropzone.querySelector('span').textContent = `Loaded: ${file.name}`;
     };
@@ -637,7 +705,44 @@ class StickerApp {
 
     this._calculateJobPricing();
 
+    this._checkDieCutOverlap();
+
     this._saveToStorage();
+  }
+
+  _checkDieCutOverlap() {
+    const dieCutActive = this.renderer.settings.showDieCut;
+    const dieOff = Number(this.config.dieCutOffset) || 0;
+    const gx = Number(this.config.gapX) || 0;
+    const gy = Number(this.config.gapY) || 0;
+
+    const minGap = dieOff * 2;
+    const isOverlapping = dieCutActive && dieOff > 0 && (gx < minGap || gy < minGap);
+
+    const warnBox = document.getElementById('dieCutOverlapWarning');
+    const minValSpan = document.getElementById('minGapRequiredVal');
+    const gapWarn = document.getElementById('gapCollisionWarning');
+
+    if (warnBox) {
+      warnBox.style.display = isOverlapping ? 'block' : 'none';
+      if (minValSpan) minValSpan.textContent = minGap.toFixed(1);
+    }
+    if (gapWarn) {
+      gapWarn.style.display = isOverlapping ? 'block' : 'none';
+    }
+  }
+
+  _autoFixDieCutGap() {
+    const minGap = (Number(this.config.dieCutOffset) || 2.5) * 2;
+    this.config.gapX = minGap;
+    this.config.gapY = minGap;
+
+    const gxInput = document.getElementById('gapXInput');
+    const gyInput = document.getElementById('gapYInput');
+    if (gxInput) gxInput.value = minGap;
+    if (gyInput) gyInput.value = minGap;
+
+    this.recalculate();
   }
 
   _updateMetricsUI() {
@@ -939,7 +1044,11 @@ class StickerApp {
           jobName: this.renderer.settings.jobName,
           customerName: this.renderer.settings.customerName,
           stickerFillColor: this.renderer.settings.stickerFillColor,
-          cutLineColor: this.renderer.settings.cutLineColor
+          cutLineColor: this.renderer.settings.cutLineColor,
+          artworkFit: this.renderer.settings.artworkFit,
+          artworkScale: this.renderer.settings.artworkScale,
+          artworkOffsetX: this.renderer.settings.artworkOffsetX,
+          artworkOffsetY: this.renderer.settings.artworkOffsetY
         }
       };
 
@@ -1057,6 +1166,14 @@ class StickerApp {
     setVal('laminationCostInput', this.pricing.laminationCostPerSheet);
     setVal('cuttingCostInput', this.pricing.cuttingCostPerSheet);
     setVal('pricePerStickerInput', this.pricing.pricePerSticker);
+
+    setVal('artworkFitSelect', this.renderer.settings.artworkFit || 'contain');
+    const curScalePct = Math.round((this.renderer.settings.artworkScale || 1.0) * 100);
+    setVal('artworkScaleInput', curScalePct);
+    const scaleValSpan = document.getElementById('artworkScaleVal');
+    if (scaleValSpan) scaleValSpan.textContent = `${curScalePct}%`;
+    setVal('artworkOffsetXInput', this.renderer.settings.artworkOffsetX || 0);
+    setVal('artworkOffsetYInput', this.renderer.settings.artworkOffsetY || 0);
   }
 
   _showSavedBadge() {

@@ -298,6 +298,10 @@
               </div>
             </div>
 
+            <div id="gapCollisionWarning" style="display: none; margin-top: 0.5rem; padding: 0.4rem 0.6rem; border-radius: var(--radius-sm); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.3); font-size: 0.74rem; color: #fca5a5;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Gap is smaller than die-cut offset (2 × offset). Cut lines will overlap!
+            </div>
+
             <div class="form-group">
               <label class="form-label">Bleed Margin per Sticker <span class="unit-tag">mm</span></label>
               <input type="number" id="bleedInput" class="form-input" value="1.5" min="0" step="0.5">
@@ -438,6 +442,18 @@
                 </div>
               </div>
             </div>
+
+            <div id="dieCutOverlapWarning" style="display: none; margin-top: 0.75rem; padding: 0.6rem 0.8rem; border-radius: var(--radius-sm); background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #fca5a5; font-size: 0.78rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                <div>
+                  <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444; margin-right: 0.3rem;"></i>
+                  <strong>Die-cut paths overlap!</strong> Min gap needed: <strong id="minGapRequiredVal">5.0</strong> mm.
+                </div>
+                <button id="autoFixGapBtn" class="btn btn-primary btn-sm" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; white-space: nowrap;">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Auto-Fix Gap
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="control-card">
@@ -451,9 +467,42 @@
               <input type="file" id="artworkFileInput" accept="image/*" style="display: none;">
             </div>
 
-            <button id="removeArtworkBtn" class="btn btn-secondary btn-sm" style="display: none; width: 100%;">
-              <i class="fa-solid fa-trash"></i> Remove Artwork
-            </button>
+            <div id="artworkControlsPanel" style="display: none; margin-top: 0.75rem;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Fit Mode</label>
+                  <select id="artworkFitSelect" class="form-select">
+                    <option value="contain" selected>Fit (Keep Proportions)</option>
+                    <option value="cover">Fill (Crop to Shape)</option>
+                    <option value="stretch">Stretch (Distort)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Scale / Zoom (<span id="artworkScaleVal">100%</span>)</label>
+                  <input type="range" id="artworkScaleInput" min="30" max="200" value="100" class="form-range" style="width: 100%;">
+                </div>
+              </div>
+
+              <div class="form-row" style="margin-top: 0.4rem;">
+                <div class="form-group">
+                  <label class="form-label">Offset X <span class="unit-tag">mm</span></label>
+                  <input type="number" id="artworkOffsetXInput" class="form-input" value="0" step="0.5">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Offset Y <span class="unit-tag">mm</span></label>
+                  <input type="number" id="artworkOffsetYInput" class="form-input" value="0" step="0.5">
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.6rem;">
+                <button id="resetArtworkTransformBtn" class="btn btn-secondary btn-sm" style="flex: 1;">
+                  <i class="fa-solid fa-arrows-rotate"></i> Center / Reset
+                </button>
+                <button id="removeArtworkBtn" class="btn btn-secondary btn-sm" style="color: var(--accent-rose);">
+                  <i class="fa-solid fa-trash"></i> Remove
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="control-card">
