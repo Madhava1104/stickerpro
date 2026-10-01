@@ -27,7 +27,7 @@ class StickerApp {
       gapX: 2.5,
       gapY: 2.5,
       bleed: 1.5,
-      dieCutOffset: 2.5,
+      dieCutOffset: 0,
       plotterSpeed: 300,
 
       layoutMode: 'auto',
@@ -383,6 +383,7 @@ class StickerApp {
     bindSettingToggle('showKissCutToggle', 'showKissCut');
     bindSettingVal('kissCutStyleSelect', 'kissCutStyle');
     bindSettingVal('kissCutColorInput', 'kissCutColor');
+    bindSettingVal('cutLineColorInput', 'cutLineColor');
 
     bindSettingToggle('showJobSlugToggle', 'showJobSlug');
     bindSettingVal('jobNameInput', 'jobName');
@@ -1007,6 +1008,7 @@ class StickerApp {
   _saveToStorage() {
     try {
       const dataToSave = {
+        version: 2,
         unit: this.unit,
         currency: this.currency,
         config: { ...this.config },
@@ -1074,6 +1076,11 @@ class StickerApp {
         Object.assign(this.pricing, parsed.pricing);
       }
       if (parsed.visuals && typeof parsed.visuals === 'object') {
+        if (!parsed.version || parsed.version < 2) {
+          parsed.visuals.showDieCut = false;
+          parsed.visuals.showKissCut = false;
+          if (this.config) this.config.dieCutOffset = 0;
+        }
         this.renderer.updateSettings(parsed.visuals);
       }
       return true;

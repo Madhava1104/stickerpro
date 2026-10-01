@@ -395,13 +395,16 @@
           <div class="control-card">
             <div class="card-title-row">
               <span class="card-title"><i class="fa-solid fa-scissors"></i> Dual Cut Contours</span>
-              <span style="font-size: 0.7rem; color: var(--primary); font-weight: 700;">PRO DIE LINE</span>
+              <span style="font-size: 0.7rem; color: var(--primary); font-weight: 700;">PRO OPTIONAL</span>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+              Disabled by default to use clean Solid Red cutline with Green Bleed. Enable for separate backing die-cut line.
             </div>
 
             <div class="toggle-row">
               <span class="toggle-label"><i class="fa-solid fa-border-outer" style="color: var(--accent-rose);"></i> Backing Die-Cut (Through-Cut)</span>
               <label class="switch">
-                <input type="checkbox" id="showDieCutToggle" checked>
+                <input type="checkbox" id="showDieCutToggle">
                 <span class="slider-round"></span>
               </label>
             </div>
@@ -409,7 +412,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Peel Border Offset <span class="unit-tag">mm</span></label>
-                <input type="number" id="dieCutOffsetInput" class="form-input" value="2.5" min="0" max="15" step="0.5">
+                <input type="number" id="dieCutOffsetInput" class="form-input" value="0" min="0" max="15" step="0.5">
               </div>
               <div class="form-group">
                 <label class="form-label">Die-Cut Color</label>
@@ -422,7 +425,7 @@
             <div class="toggle-row" style="margin-top: 0.5rem;">
               <span class="toggle-label"><i class="fa-solid fa-circle-dot" style="color: #ec4899;"></i> Vinyl Kiss-Cut (Peel Line)</span>
               <label class="switch">
-                <input type="checkbox" id="showKissCutToggle" checked>
+                <input type="checkbox" id="showKissCutToggle">
                 <span class="slider-round"></span>
               </label>
             </div>
@@ -585,6 +588,13 @@
           <div class="control-card">
             <div class="card-title-row">
               <span class="card-title"><i class="fa-solid fa-eye-dropper"></i> Colors & Stroke Styling</span>
+            </div>
+
+            <div class="color-picker-item">
+              <span class="color-picker-label">Cut Line Color</span>
+              <div class="color-input-wrapper">
+                <input type="color" id="cutLineColorInput" value="#ef4444">
+              </div>
             </div>
 
             <div class="color-picker-item">

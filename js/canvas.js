@@ -35,16 +35,16 @@ class SheetCanvasRenderer {
       bracketColor: '#2563eb', 
       bracketStyle: 'corner', 
 
-      showKissCut: true,
+      showKissCut: false,
       kissCutColor: '#ec4899', 
       kissCutLineWidth: 1.2,
       kissCutStyle: 'dashed', 
 
-      showDieCut: true,
+      showDieCut: false,
       dieCutColor: '#ef4444', 
       dieCutLineWidth: 1.5,
       dieCutStyle: 'solid',
-      dieCutOffset: 2.5, 
+      dieCutOffset: 0, 
 
       artworkFit: 'contain',
       artworkScale: 1.0,
@@ -568,19 +568,19 @@ class SheetCanvasRenderer {
 
       this._renderMaterialOverlays(ctx, sx, sy, sw, sh, shape, cr, material);
 
-      if (this.settings.showKissCut) {
-        ctx.save();
-        ctx.strokeStyle = this.settings.kissCutColor || '#ec4899';
-        ctx.lineWidth = (this.settings.kissCutLineWidth || 1.2) * this.dpr;
-        if (this.settings.kissCutStyle === 'dashed') {
-          ctx.setLineDash([3 * this.dpr, 2.5 * this.dpr]);
+      if (this.settings.showDieCut && dieOffsetPx > 0) {
+        if (this.settings.showKissCut) {
+          ctx.save();
+          ctx.strokeStyle = this.settings.kissCutColor || '#ec4899';
+          ctx.lineWidth = (this.settings.kissCutLineWidth || 1.2) * this.dpr;
+          if (this.settings.kissCutStyle === 'dashed') {
+            ctx.setLineDash([3 * this.dpr, 2.5 * this.dpr]);
+          }
+          this._createStickerPath(ctx, sx, sy, sw, sh, shape, cr);
+          ctx.stroke();
+          ctx.restore();
         }
-        this._createStickerPath(ctx, sx, sy, sw, sh, shape, cr);
-        ctx.stroke();
-        ctx.restore();
-      }
 
-      if (this.settings.showDieCut) {
         ctx.save();
         ctx.strokeStyle = this.settings.dieCutColor || '#ef4444';
         ctx.lineWidth = (this.settings.dieCutLineWidth || 1.5) * this.dpr;
@@ -593,6 +593,17 @@ class SheetCanvasRenderer {
         const drawH = sh + dieOffsetPx * 2;
         const drawCr = cr > 0 ? (cr + dieOffsetPx) : 0;
         this._createStickerPath(ctx, drawX, drawY, drawW, drawH, shape, drawCr);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        // Classic Standard Cut Line: Solid Red on the sticker perimeter, clean and crisp
+        ctx.save();
+        ctx.strokeStyle = this.settings.cutLineColor || '#ef4444';
+        ctx.lineWidth = (this.settings.cutLineWidth || 1.5) * this.dpr;
+        if (this.settings.cutLineStyle === 'dashed') {
+          ctx.setLineDash([4 * this.dpr, 3 * this.dpr]);
+        }
+        this._createStickerPath(ctx, sx, sy, sw, sh, shape, cr);
         ctx.stroke();
         ctx.restore();
       }

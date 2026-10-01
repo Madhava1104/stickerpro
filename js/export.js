@@ -71,7 +71,7 @@ class ExportManager {
       svg += `  </g>\n\n`;
     }
 
-    if (settings.showDieCut !== false) {
+    if (settings.showDieCut && dieCutOffset > 0) {
       svg += `  <!-- Die-Cut Contour Layer (PerfCut / Through-Cut) -->\n`;
       svg += `  <g id="CutContour" inkscape:label="Die-Cut (PerfCut)" stroke="${dieColor}">\n`;
       layoutData.stickers.forEach(s => {
@@ -80,13 +80,23 @@ class ExportManager {
         svg += `    ${this._getSvgShapeElement(s.shape, s.x - off, s.y - off, s.width + off * 2, s.height + off * 2, cr, 'die-cut')}\n`;
       });
       svg += `  </g>\n\n`;
-    }
 
-    if (settings.showKissCut !== false) {
-      svg += `  <!-- Kiss-Cut Contour Layer (Peel Line) -->\n`;
-      svg += `  <g id="KissCut" inkscape:label="Kiss-Cut (Peel)" stroke="${kissColor}">\n`;
+      if (settings.showKissCut) {
+        svg += `  <!-- Kiss-Cut Contour Layer (Peel Line) -->\n`;
+        svg += `  <g id="KissCut" inkscape:label="Kiss-Cut (Peel)" stroke="${kissColor}">\n`;
+        layoutData.stickers.forEach(s => {
+          svg += `    ${this._getSvgShapeElement(s.shape, s.x, s.y, s.width, s.height, s.cornerRadius || 0, 'kiss-cut')}\n`;
+          if (settings.showStickerNumbers) {
+            svg += `    <text class="sticker-num" x="${(s.x + s.width / 2).toFixed(2)}" y="${(s.y + s.height / 2).toFixed(2)}">${s.index}</text>\n`;
+          }
+        });
+        svg += `  </g>\n\n`;
+      }
+    } else {
+      svg += `  <!-- Primary Cut Contour Layer -->\n`;
+      svg += `  <g id="CutContour" inkscape:label="CutContour" stroke="${settings.cutLineColor || '#ef4444'}">\n`;
       layoutData.stickers.forEach(s => {
-        svg += `    ${this._getSvgShapeElement(s.shape, s.x, s.y, s.width, s.height, s.cornerRadius || 0, 'kiss-cut')}\n`;
+        svg += `    ${this._getSvgShapeElement(s.shape, s.x, s.y, s.width, s.height, s.cornerRadius || 0, 'cut-line')}\n`;
         if (settings.showStickerNumbers) {
           svg += `    <text class="sticker-num" x="${(s.x + s.width / 2).toFixed(2)}" y="${(s.y + s.height / 2).toFixed(2)}">${s.index}</text>\n`;
         }
