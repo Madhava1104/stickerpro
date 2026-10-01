@@ -93,6 +93,15 @@ class StickerApp {
     this.unit = newUnit;
     this._updateUnitLabels();
     this._syncInputsFromConfig();
+
+    document.querySelectorAll('input[name="unitRadio"]').forEach(r => {
+      r.checked = (r.value === newUnit);
+    });
+
+    document.querySelectorAll('.mobile-unit-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.unit === newUnit);
+    });
+
     this._saveToStorage();
   }
 
@@ -106,6 +115,13 @@ class StickerApp {
     this.currency = newCurrency;
     this._updateCurrencyLabels();
     this._calculateJobPricing();
+
+    const currSelect = document.getElementById('currencySelect');
+    if (currSelect) currSelect.value = newCurrency;
+
+    const mobCurrSelect = document.getElementById('mobileCurrencySelect');
+    if (mobCurrSelect) mobCurrSelect.value = newCurrency;
+
     this._saveToStorage();
   }
 
@@ -158,6 +174,8 @@ class StickerApp {
       themeSelect.addEventListener('change', (e) => {
         document.documentElement.setAttribute('data-theme', e.target.value);
         this.renderer.updateSettings({ canvasTheme: e.target.value });
+        const mobTheme = document.getElementById('mobileThemeToggle');
+        if (mobTheme) mobTheme.value = e.target.value;
         this._saveToStorage();
       });
     }
@@ -204,7 +222,15 @@ class StickerApp {
 
     document.querySelectorAll('input[name="paperOrientation"]').forEach(r => {
       r.addEventListener('change', (e) => {
-        this.config.paperOrientation = e.target.value;
+        const newOrientation = e.target.value;
+        if (newOrientation !== this.config.paperOrientation) {
+          this.config.paperOrientation = newOrientation;
+          if ((newOrientation === 'landscape' && this.config.paperWidth < this.config.paperHeight) ||
+              (newOrientation === 'portrait' && this.config.paperWidth > this.config.paperHeight)) {
+            [this.config.paperWidth, this.config.paperHeight] = [this.config.paperHeight, this.config.paperWidth];
+            [this.config.printableWidth, this.config.printableHeight] = [this.config.printableHeight, this.config.printableWidth];
+          }
+        }
         this._syncInputsFromConfig();
         this.recalculate();
         this.renderer.fitToScreen();
@@ -299,6 +325,15 @@ class StickerApp {
 
     document.querySelectorAll('.strategy-card').forEach(card => {
       card.addEventListener('click', () => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+        if (isMobile) {
+          this.config.layoutMode = 'standard';
+          document.querySelectorAll('.strategy-card').forEach(c => {
+            c.classList.toggle('active', c.dataset.mode === 'standard');
+          });
+          this.recalculate();
+          return;
+        }
         document.querySelectorAll('.strategy-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
         this.config.layoutMode = card.dataset.mode;
@@ -414,6 +449,13 @@ class StickerApp {
     const offXInput = document.getElementById('artworkOffsetXInput');
     const offYInput = document.getElementById('artworkOffsetYInput');
 
+    const mobHeaderUploadBtn = document.getElementById('mobileHeaderUploadBtn');
+    if (mobHeaderUploadBtn && artworkInput) {
+      mobHeaderUploadBtn.addEventListener('click', () => {
+        artworkInput.click();
+      });
+    }
+
     if (dropzone && artworkInput) {
       dropzone.addEventListener('click', () => artworkInput.click());
       dropzone.addEventListener('dragover', (e) => {
@@ -426,14 +468,27 @@ class StickerApp {
       dropzone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropzone.style.borderColor = 'var(--border-color)';
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          this._loadArtworkFile(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files) {
+          if (e.dataTransfer.files.length > 1) {
+            alert('Only 1 file can be uploaded at a time.');
+            return;
+          }
+          if (e.dataTransfer.files[0]) {
+            this._loadArtworkFile(e.dataTransfer.files[0]);
+          }
         }
       });
 
       artworkInput.addEventListener('change', () => {
-        if (artworkInput.files && artworkInput.files[0]) {
-          this._loadArtworkFile(artworkInput.files[0]);
+        if (artworkInput.files) {
+          if (artworkInput.files.length > 1) {
+            alert('Only 1 file can be uploaded at a time.');
+            artworkInput.value = '';
+            return;
+          }
+          if (artworkInput.files[0]) {
+            this._loadArtworkFile(artworkInput.files[0]);
+          }
         }
       });
     }
@@ -584,12 +639,215 @@ class StickerApp {
         printWindow.document.close();
       });
     }
+
+    // --- Mobile Drawer & Navigation Event Bindings ---
+    const mobileSidebarToggle = document.getElementById('mobileSidebarToggle');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+    const sidebarPanel = document.getElementById('sidebarPanel');
+
+    const openSidebar = () => {
+      if (sidebarPanel) sidebarPanel.classList.add('open');
+      if (sidebarBackdrop) sidebarBackdrop.classList.add('active');
+      document.body.style.overflow = 'hidden';
+    };
+
+    const closeSidebar = () => {
+      if (sidebarPanel) sidebarPanel.classList.remove('open');
+      if (sidebarBackdrop) sidebarBackdrop.classList.remove('active');
+      document.body.style.overflow = '';
+    };
+
+    mobileSidebarToggle?.addEventListener('click', openSidebar);
+    closeSidebarBtn?.addEventListener('click', closeSidebar);
+    sidebarBackdrop?.addEventListener('click', closeSidebar);
+
+    const activateSidebarTab = (tabId) => {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.target === tabId);
+      });
+      document.querySelectorAll('.tab-pane').forEach(p => {
+        p.classList.toggle('active', p.id === tabId);
+      });
+      const scroller = document.querySelector('.sidebar-content');
+      if (scroller) scroller.scrollTop = 0;
+    };
+
+    document.getElementById('navBtnConfig')?.addEventListener('click', () => {
+      if (sidebarPanel?.classList.contains('open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+
+    document.getElementById('navBtnPaper')?.addEventListener('click', () => {
+      activateSidebarTab('tabPaper');
+      openSidebar();
+    });
+
+    document.getElementById('navBtnStickers')?.addEventListener('click', () => {
+      activateSidebarTab('tabStickers');
+      openSidebar();
+    });
+
+    document.getElementById('navBtnFit')?.addEventListener('click', () => {
+      closeSidebar();
+      this.renderer.fitToScreen();
+    });
+
+    // --- Mobile Actions Modal Event Bindings ---
+    const mobActionsModal = document.getElementById('mobileActionsModal');
+    const openMobActionsBtn = document.getElementById('mobileActionsBtn');
+    const closeMobActionsBtn = document.getElementById('closeMobileActionsBtn');
+
+    const openMobModal = () => {
+      closeSidebar();
+      if (mobActionsModal) mobActionsModal.style.display = 'flex';
+    };
+
+    const closeMobModal = () => {
+      if (mobActionsModal) mobActionsModal.style.display = 'none';
+    };
+
+    openMobActionsBtn?.addEventListener('click', openMobModal);
+    document.getElementById('navBtnActions')?.addEventListener('click', openMobModal);
+    closeMobActionsBtn?.addEventListener('click', closeMobModal);
+
+    if (mobActionsModal) {
+      mobActionsModal.addEventListener('click', (e) => {
+        if (e.target === mobActionsModal) closeMobModal();
+      });
+    }
+
+    document.getElementById('mobilePrintBtn')?.addEventListener('click', () => {
+      closeMobModal();
+      ExportManager.printSheet(this.layoutResult, this.renderer.settings, this.renderer.artworkImage);
+    });
+
+    document.getElementById('mobileExportPngBtn')?.addEventListener('click', () => {
+      closeMobModal();
+      ExportManager.downloadPNG(this.renderer, `stickers_${this.config.stickerShape}_${this.config.paperPreset}.png`, 300);
+    });
+
+    document.getElementById('mobileExportSvgBtn')?.addEventListener('click', () => {
+      closeMobModal();
+      ExportManager.downloadSVG(this.layoutResult, this.renderer.settings, `stickers_${this.config.stickerShape}_cutlines.svg`);
+    });
+
+    document.getElementById('mobileJobTicketBtn')?.addEventListener('click', () => {
+      closeMobModal();
+      this._renderJobTicket();
+      const jModal = document.getElementById('jobTicketModal');
+      if (jModal) jModal.style.display = 'flex';
+    });
+
+    const mobThemeSelect = document.getElementById('mobileThemeToggle');
+    if (mobThemeSelect) {
+      mobThemeSelect.value = document.documentElement.getAttribute('data-theme') || 'dark';
+      mobThemeSelect.addEventListener('change', (e) => {
+        const theme = e.target.value;
+        document.documentElement.setAttribute('data-theme', theme);
+        this.renderer.updateSettings({ canvasTheme: theme });
+        const desktopTheme = document.getElementById('themeToggle');
+        if (desktopTheme) desktopTheme.value = theme;
+        this._saveToStorage();
+      });
+    }
+
+    const mobCurrencySelect = document.getElementById('mobileCurrencySelect');
+    if (mobCurrencySelect) {
+      mobCurrencySelect.value = this.currency;
+      mobCurrencySelect.addEventListener('change', (e) => {
+        this.setCurrency(e.target.value);
+      });
+    }
+
+    document.querySelectorAll('.mobile-unit-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.setUnit(btn.dataset.unit);
+      });
+    });
+
+    document.getElementById('mobileResetDefaultsBtn')?.addEventListener('click', () => {
+      closeMobModal();
+      this.resetDefaults();
+    });
+
+    // --- Bottom Metrics Bar Expand/Collapse on Mobile ---
+    const metricsExpandBtn = document.getElementById('metricsExpandBtn');
+    const bottomMetricsBar = document.getElementById('bottomMetricsBar');
+    metricsExpandBtn?.addEventListener('click', () => {
+      bottomMetricsBar?.classList.toggle('expanded');
+    });
+
+    // --- Global Viewport, Escape & Orientation Handling ---
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        this.renderer.resizeCanvas();
+        this.renderer.fitToScreen();
+      }, 200);
+    });
+
+    let resizeTimer = null;
+    let lastWasMobile = typeof window !== 'undefined' ? window.innerWidth <= 768 : false;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        this.renderer.resizeCanvas();
+        this.renderer.render();
+        const currentIsMobile = window.innerWidth <= 768;
+        if (currentIsMobile !== lastWasMobile) {
+          lastWasMobile = currentIsMobile;
+          this.recalculate();
+        }
+      }, 100);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeSidebar();
+        closeMobModal();
+        const jModal = document.getElementById('jobTicketModal');
+        if (jModal) jModal.style.display = 'none';
+      }
+    });
   }
 
-  _loadArtworkFile(file) {
-    if (!file.type.startsWith('image/')) {
-      alert('Please upload an image file (PNG, JPG, SVG, WebP)');
+  async _loadArtworkFile(file) {
+    if (!file) return;
+
+    const validExtensions = ['.png', '.jpg', '.jpeg', '.webp', '.svg'];
+    const validMimes = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    const isValidExt = validExtensions.includes(ext);
+    const isValidMime = validMimes.includes(file.type) || file.type.startsWith('image/');
+
+    if (!isValidExt || !isValidMime) {
+      alert('Invalid file format. Only JPG, PNG, WEBP, and SVG image files are allowed.');
       return;
+    }
+
+    // Save original file to public/ folder via server API
+    let publicSavedName = null;
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'X-Filename': encodeURIComponent(file.name),
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.filename) {
+          publicSavedName = result.filename;
+        }
+      }
+    } catch (err) {
+      console.warn('Server upload not reachable (standalone/offline mode), falling back to local reader:', err);
     }
 
     const reader = new FileReader();
@@ -600,7 +858,9 @@ class StickerApp {
       const panel = document.getElementById('artworkControlsPanel');
       if (panel) panel.style.display = 'block';
       const dropzone = document.getElementById('artworkDropzone');
-      if (dropzone) dropzone.querySelector('span').textContent = `Loaded: ${file.name}`;
+      if (dropzone) {
+        dropzone.querySelector('span').textContent = `Loaded: ${file.name}${publicSavedName ? ' (Saved to public/)' : ''}`;
+      }
     };
     reader.readAsDataURL(file);
   }
@@ -610,12 +870,25 @@ class StickerApp {
     if (!preset) return;
 
     this.config.paperPreset = presetId;
-    this.config.paperWidth = preset.width;
-    this.config.paperHeight = preset.height;
-    this.config.printableWidth = preset.printableWidth;
-    this.config.printableHeight = preset.printableHeight;
-    this.config.printableMarginLeft = (preset.width - preset.printableWidth) / 2;
-    this.config.printableMarginTop = (preset.height - preset.printableHeight) / 2;
+    let pw = preset.width;
+    let ph = preset.height;
+    let prw = preset.printableWidth;
+    let prh = preset.printableHeight;
+
+    if (this.config.paperOrientation === 'landscape') {
+      if (pw < ph) [pw, ph] = [ph, pw];
+      if (prw < prh) [prw, prh] = [prh, prw];
+    } else {
+      if (pw > ph) [pw, ph] = [ph, pw];
+      if (prw > prh) [prw, prh] = [prh, prw];
+    }
+
+    this.config.paperWidth = pw;
+    this.config.paperHeight = ph;
+    this.config.printableWidth = prw;
+    this.config.printableHeight = prh;
+    this.config.printableMarginLeft = (pw - prw) / 2;
+    this.config.printableMarginTop = (ph - prh) / 2;
 
     this._syncInputsFromConfig();
     this.recalculate();
@@ -677,6 +950,11 @@ class StickerApp {
       if (prw > prh) [prw, prh] = [prh, prw];
     }
 
+    this.config.paperWidth = pw;
+    this.config.paperHeight = ph;
+    this.config.printableWidth = prw;
+    this.config.printableHeight = prh;
+
     setVal('paperWidthInput', pw);
     setVal('paperHeightInput', ph);
     setVal('printableWidthInput', prw);
@@ -688,6 +966,12 @@ class StickerApp {
     setVal('gapYInput', this.config.gapY);
     setVal('bleedInput', this.config.bleed);
     setVal('dieCutOffsetInput', this.config.dieCutOffset);
+
+    setVal('innerMarginTop', this.config.innerMarginTop || 0);
+    setVal('innerMarginBottom', this.config.innerMarginBottom || 0);
+    setVal('innerMarginLeft', this.config.innerMarginLeft || 0);
+    setVal('innerMarginRight', this.config.innerMarginRight || 0);
+
     const speedEl = document.getElementById('plotterSpeedInput');
     if (speedEl) speedEl.value = this.config.plotterSpeed;
 
@@ -697,8 +981,10 @@ class StickerApp {
   }
 
   recalculate() {
-    
-    this.layoutResult = LayoutCalculator.calculate(this.config);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    const calcConfig = isMobile ? { ...this.config, layoutMode: 'standard' } : this.config;
+
+    this.layoutResult = LayoutCalculator.calculate(calcConfig);
 
     this.renderer.setLayoutData(this.layoutResult);
 
@@ -726,7 +1012,7 @@ class StickerApp {
 
     if (warnBox) {
       warnBox.style.display = isOverlapping ? 'block' : 'none';
-      if (minValSpan) minValSpan.textContent = minGap.toFixed(1);
+      if (minValSpan) minValSpan.textContent = `${this.toCurrentUnit(minGap)} ${this.unit}`;
     }
     if (gapWarn) {
       gapWarn.style.display = isOverlapping ? 'block' : 'none';
@@ -738,11 +1024,7 @@ class StickerApp {
     this.config.gapX = minGap;
     this.config.gapY = minGap;
 
-    const gxInput = document.getElementById('gapXInput');
-    const gyInput = document.getElementById('gapYInput');
-    if (gxInput) gxInput.value = minGap;
-    if (gyInput) gyInput.value = minGap;
-
+    this._syncInputsFromConfig();
     this.recalculate();
   }
 
@@ -796,9 +1078,25 @@ class StickerApp {
     const bottomPlotterEl = document.getElementById('bottomPlotterTimeLabel');
     if (bottomPlotterEl) bottomPlotterEl.textContent = stats.estimatedCutTimeString;
 
-    if (this.config.layoutMode === 'auto') {
+    // Mobile Summary pills in the collapsed bottom bar
+    const mobYield = document.getElementById('mobileSummaryYield');
+    if (mobYield) mobYield.textContent = `${stats.count} pcs`;
+
+    const mobUtil = document.getElementById('mobileSummaryUtil');
+    if (mobUtil) mobUtil.textContent = `${stats.paperUtilization}%`;
+
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    if (isMobile) {
+      document.querySelectorAll('.strategy-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.mode === 'standard');
+      });
+    } else if (this.config.layoutMode === 'auto') {
       document.querySelectorAll('.strategy-card').forEach(card => {
         card.classList.toggle('active', card.dataset.mode === stats.activeMode);
+      });
+    } else {
+      document.querySelectorAll('.strategy-card').forEach(card => {
+        card.classList.toggle('active', card.dataset.mode === this.config.layoutMode);
       });
     }
   }
@@ -807,10 +1105,10 @@ class StickerApp {
     if (!this.layoutResult) return;
 
     const stats = this.layoutResult.stats;
-    const stickersPerSheet = stats.count || 1;
+    const stickersPerSheet = stats.count || 0;
     const targetQuantity = parseInt(document.getElementById('targetQuantityInput')?.value) || 500;
 
-    const sheetsNeeded = Math.ceil(targetQuantity / stickersPerSheet);
+    const sheetsNeeded = stickersPerSheet > 0 ? Math.ceil(targetQuantity / stickersPerSheet) : 0;
     const totalProduced = sheetsNeeded * stickersPerSheet;
     const surplusStickers = Math.max(0, totalProduced - targetQuantity);
 
@@ -862,8 +1160,6 @@ class StickerApp {
         return;
       }
       tooltip.style.display = 'block';
-      tooltip.style.left = `${clientX + 16}px`;
-      tooltip.style.top = `${clientY + 16}px`;
       tooltip.innerHTML = `
         <div class="badge-title"><i class="fa-solid fa-stamp"></i> Sticker #${sticker.index}</div>
         <div><strong>Pos:</strong> X: ${sticker.x.toFixed(1)} mm, Y: ${sticker.y.toFixed(1)} mm</div>
@@ -872,6 +1168,14 @@ class StickerApp {
         <div><strong>Cut Perimeter:</strong> ${sticker.perimeterMm || 0} mm</div>
         <div><strong>Orientation:</strong> ${sticker.rotated ? 'Rotated 90°' : 'Natural'}</div>
       `;
+
+      const tipW = tooltip.offsetWidth || 190;
+      const tipH = tooltip.offsetHeight || 130;
+      const safeX = Math.max(10, Math.min(clientX + 16, window.innerWidth - tipW - 10));
+      const safeY = Math.max(10, Math.min(clientY + 16, window.innerHeight - tipH - 10));
+
+      tooltip.style.left = `${safeX}px`;
+      tooltip.style.top = `${safeY}px`;
     };
   }
 
@@ -881,8 +1185,8 @@ class StickerApp {
     const paper = this.layoutResult.paper;
     const pa = this.layoutResult.printableArea;
     const targetQuantity = parseInt(document.getElementById('targetQuantityInput')?.value) || 500;
-    const sheetsNeeded = Math.ceil(targetQuantity / (stats.count || 1));
-    const totalProduced = sheetsNeeded * (stats.count || 1);
+    const sheetsNeeded = stats.count > 0 ? Math.ceil(targetQuantity / stats.count) : 0;
+    const totalProduced = sheetsNeeded * (stats.count || 0);
     const curr = this.currency || '₹';
 
     const paperCostSheet = parseFloat(document.getElementById('paperCostInput')?.value) || 0;
@@ -997,7 +1301,7 @@ class StickerApp {
           </tr>
           <tr style="font-weight: 800; background: rgba(16, 185, 129, 0.1); color: var(--accent-emerald);">
             <td>Total Quoted Revenue (Net Profit)</td>
-            <td>Unit: ${curr}${(totalProductionCost / totalProduced).toFixed(2)}</td>
+            <td>Unit: ${curr}${totalProduced > 0 ? (totalProductionCost / totalProduced).toFixed(2) : '0.00'}</td>
             <td>${curr}${totalRevenue.toFixed(2)} (Profit: ${curr}${netProfit.toFixed(2)} [${profitMargin.toFixed(1)}%])</td>
           </tr>
         </tbody>
@@ -1098,10 +1402,18 @@ class StickerApp {
 
     const curSelect = document.getElementById('currencySelect');
     if (curSelect) curSelect.value = this.currency;
+    const mobCurSelect = document.getElementById('mobileCurrencySelect');
+    if (mobCurSelect) mobCurSelect.value = this.currency;
 
     const themeSelect = document.getElementById('themeToggle');
     if (themeSelect) themeSelect.value = this.renderer.settings.canvasTheme;
+    const mobThemeSelect = document.getElementById('mobileThemeToggle');
+    if (mobThemeSelect) mobThemeSelect.value = this.renderer.settings.canvasTheme;
     document.documentElement.setAttribute('data-theme', this.renderer.settings.canvasTheme);
+
+    document.querySelectorAll('.mobile-unit-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.unit === this.unit);
+    });
 
     const pSelect = document.getElementById('paperPresetSelect');
     if (pSelect) pSelect.value = this.config.paperPreset;
@@ -1117,8 +1429,10 @@ class StickerApp {
     });
     this._toggleShapeControls(this.config.stickerShape);
 
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     document.querySelectorAll('.strategy-card').forEach(c => {
-      c.classList.toggle('active', c.dataset.mode === this.config.layoutMode);
+      const targetMode = isMobile ? 'standard' : this.config.layoutMode;
+      c.classList.toggle('active', c.dataset.mode === targetMode);
     });
 
     const alignSelect = document.getElementById('alignmentSelect');

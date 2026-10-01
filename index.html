@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>StickerPro Studio — Print Shop Sticker Sheet Layout Simulator & Optimizer</title>
   <meta name="description" content="High-precision sticker sheet layout simulator and yield optimizer for digital printing shops. Calculates optimal standard, rotated, and hybrid layouts with millimeter accuracy.">
 
@@ -13,37 +13,41 @@
 
   <header class="app-header">
     <div class="brand-container">
+      <button id="mobileSidebarToggle" class="mobile-toggle-btn" aria-label="Toggle configuration menu" title="Settings">
+        <i class="fa-solid fa-sliders"></i>
+      </button>
+
       <div class="brand-icon">
         <i class="fa-solid fa-shapes"></i>
       </div>
       <div>
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <span class="brand-title">StickerPro Studio</span>
-          <span class="brand-tag">PRO SHOP</span>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <span class="brand-title">StickerPro</span>
+          <span class="brand-tag">PRO</span>
         </div>
       </div>
     </div>
 
-    <div class="header-center-info">
+    <div class="header-center-info desktop-only">
       <div class="badge-pill">
         <span class="dot"></span>
         <span>Real-Time Engine Active</span>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 0.25rem; background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: var(--radius-full); border: 1px solid var(--border-color);">
+      <div class="unit-selector-pill">
         <label style="font-size: 0.725rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">UNIT:</label>
-        <label style="cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem;">
+        <label class="unit-opt">
           <input type="radio" name="unitRadio" value="mm" checked style="accent-color: var(--primary);"> mm
         </label>
-        <label style="cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem;">
+        <label class="unit-opt">
           <input type="radio" name="unitRadio" value="in" style="accent-color: var(--primary);"> in
         </label>
-        <label style="cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem;">
+        <label class="unit-opt">
           <input type="radio" name="unitRadio" value="cm" style="accent-color: var(--primary);"> cm
         </label>
       </div>
 
-      <div style="display: flex; align-items: center; gap: 0.25rem; background: var(--bg-card); padding: 0.25rem 0.6rem; border-radius: var(--radius-full); border: 1px solid var(--border-color);">
+      <div class="currency-selector-pill">
         <label style="font-size: 0.725rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">CURRENCY:</label>
         <select id="currencySelect" style="background: transparent; border: none; font-size: 0.75rem; font-weight: 700; color: var(--accent-emerald); cursor: pointer; outline: none;">
           <option value="₹" selected>₹ INR (Rupees)</option>
@@ -56,37 +60,64 @@
     </div>
 
     <div class="header-actions">
-      
-      <span id="storageSavedBadge" style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.725rem; font-weight: 700; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.25rem 0.6rem; border-radius: var(--radius-full); transition: opacity 0.3s ease;">
-        <i class="fa-solid fa-floppy-disk"></i> Auto-Saved
-      </span>
-
-      <select id="themeToggle" class="form-select" style="width: auto; padding: 0.35rem 0.65rem; font-size: 0.75rem;">
-        <option value="dark">🌙 Dark Theme</option>
-        <option value="slate">🌌 Slate Studio</option>
-        <option value="blueprint">📐 Blueprint</option>
-        <option value="light">☀️ Clean Light</option>
-      </select>
-
-      <button id="resetDefaultsBtn" class="btn btn-secondary btn-sm" title="Reset all custom settings & dimensions to factory defaults" style="color: var(--text-muted);">
-        <i class="fa-solid fa-rotate-left"></i> Reset Defaults
+      <!-- Mobile Sticker Upload Button (Left of Export button on mobile view) -->
+      <button id="mobileHeaderUploadBtn" class="btn btn-secondary btn-sm mobile-only-btn" title="Upload Sticker Artwork">
+        <i class="fa-solid fa-arrow-up-from-bracket"></i>
+        <span>Upload</span>
       </button>
 
-      <button id="exportSvgBtn" class="btn btn-secondary btn-sm" title="Export Vector SVG Cut Lines">
-        <i class="fa-solid fa-bezier-curve"></i> SVG Cuts
+      <!-- Mobile Quick Actions / Export trigger -->
+      <button id="mobileActionsBtn" class="btn btn-primary btn-sm mobile-only-btn" title="Export & Quick Options">
+        <i class="fa-solid fa-share-from-square"></i>
+        <span>Export</span>
       </button>
-      <button id="exportPngBtn" class="btn btn-secondary btn-sm" title="Export 300 DPI High-Res PNG">
-        <i class="fa-solid fa-image"></i> 300 DPI PNG
-      </button>
-      <button id="printSheetBtn" class="btn btn-primary btn-sm" title="Direct 1:1 Scale Print">
-        <i class="fa-solid fa-print"></i> 1:1 Print Sheet
-      </button>
+
+      <div class="desktop-actions">
+        <span id="storageSavedBadge" style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.725rem; font-weight: 700; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.25rem 0.6rem; border-radius: var(--radius-full); transition: opacity 0.3s ease;">
+          <i class="fa-solid fa-floppy-disk"></i> Auto-Saved
+        </span>
+
+        <select id="themeToggle" class="form-select" style="width: auto; padding: 0.35rem 0.65rem; font-size: 0.75rem;">
+          <option value="dark">🌙 Dark Theme</option>
+          <option value="slate">🌌 Slate Studio</option>
+          <option value="blueprint">📐 Blueprint</option>
+          <option value="light">☀️ Clean Light</option>
+        </select>
+
+        <button id="resetDefaultsBtn" class="btn btn-secondary btn-sm" title="Reset all custom settings & dimensions to factory defaults" style="color: var(--text-muted);">
+          <i class="fa-solid fa-rotate-left"></i> Reset Defaults
+        </button>
+
+        <button id="exportSvgBtn" class="btn btn-secondary btn-sm" title="Export Vector SVG Cut Lines">
+          <i class="fa-solid fa-bezier-curve"></i> SVG Cuts
+        </button>
+        <button id="exportPngBtn" class="btn btn-secondary btn-sm" title="Export 300 DPI High-Res PNG">
+          <i class="fa-solid fa-image"></i> 300 DPI PNG
+        </button>
+        <button id="printSheetBtn" class="btn btn-primary btn-sm" title="Direct 1:1 Scale Print">
+          <i class="fa-solid fa-print"></i> 1:1 Print Sheet
+        </button>
+      </div>
     </div>
   </header>
 
   <main class="app-workspace">
 
+    <!-- Mobile Drawer Backdrop -->
+    <div id="sidebarBackdrop" class="sidebar-backdrop" aria-hidden="true"></div>
+
     <aside class="sidebar" id="sidebarPanel">
+
+      <!-- Mobile-only sidebar drawer top bar -->
+      <div class="sidebar-mobile-header">
+        <div class="sidebar-mobile-title">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Configuration Studio</span>
+        </div>
+        <button id="closeSidebarBtn" class="sidebar-close-btn" aria-label="Close configuration panel">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
 
       <div class="sidebar-tabs">
         <button class="tab-btn active" data-target="tabPaper">
@@ -114,6 +145,16 @@
           <div class="control-card">
             <div class="card-title-row">
               <span class="card-title"><i class="fa-solid fa-file-lines"></i> Physical Paper Sheet</span>
+            </div>
+
+            <!-- Mobile-only Measurement Unit Selector (Hidden on Web View) -->
+            <div class="form-group mobile-only-unit-control">
+              <label class="form-label"><i class="fa-solid fa-ruler-combined"></i> Measuring Unit</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.35rem;">
+                <button type="button" class="btn btn-secondary btn-sm mobile-unit-btn" data-unit="mm">mm</button>
+                <button type="button" class="btn btn-secondary btn-sm mobile-unit-btn" data-unit="in">in</button>
+                <button type="button" class="btn btn-secondary btn-sm mobile-unit-btn" data-unit="cm">cm</button>
+              </div>
             </div>
 
             <div class="form-group">
@@ -466,8 +507,8 @@
 
             <div class="file-dropzone" id="artworkDropzone">
               <i class="fa-solid fa-image"></i>
-              <span>Click or drag sticker artwork (PNG, JPG, SVG)</span>
-              <input type="file" id="artworkFileInput" accept="image/*" style="display: none;">
+              <span>Click or drag sticker artwork (PNG, JPG, SVG, WebP)</span>
+              <input type="file" id="artworkFileInput" accept=".jpg,.jpeg,.png,.webp,.svg,image/jpeg,image/png,image/webp,image/svg+xml" style="display: none;">
             </div>
 
             <div id="artworkControlsPanel" style="display: none; margin-top: 0.75rem;">
@@ -753,13 +794,15 @@
       <div id="hoverInspectionTooltip" class="canvas-inspect-badge" style="display: none;"></div>
 
       <div class="floating-presets-bar">
-        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Quick Sheet:</span>
-        <div class="preset-chip active" data-preset="super_a3">13"×19" Super A3</div>
-        <div class="preset-chip" data-preset="sra3">SRA3</div>
-        <div class="preset-chip" data-preset="a3">A3</div>
-        <div class="preset-chip" data-preset="a4">A4</div>
-        <div class="preset-chip" data-preset="tabloid">11"×17" Tabloid</div>
-        <div class="preset-chip" data-preset="letter">Letter</div>
+        <span class="presets-bar-title"><i class="fa-solid fa-scroll"></i> Sheet:</span>
+        <div class="preset-chips-scroll">
+          <div class="preset-chip active" data-preset="super_a3">13"×19" Super A3</div>
+          <div class="preset-chip" data-preset="sra3">SRA3</div>
+          <div class="preset-chip" data-preset="a3">A3</div>
+          <div class="preset-chip" data-preset="a4">A4</div>
+          <div class="preset-chip" data-preset="tabloid">11"×17" Tabloid</div>
+          <div class="preset-chip" data-preset="letter">Letter</div>
+        </div>
       </div>
 
       <div class="canvas-hud-toolbar">
@@ -771,44 +814,129 @@
         <button id="resetViewBtn" class="hud-btn" title="Reset View"><i class="fa-solid fa-rotate-left"></i></button>
       </div>
 
-      <div class="bottom-metrics-bar">
-        <div class="metric-item">
-          <span class="metric-label">Stickers / Sheet</span>
-          <span class="metric-val highlight-emerald" id="totalYieldCount">0</span>
+      <div class="bottom-metrics-bar" id="bottomMetricsBar">
+        <div class="metrics-mobile-toggle-row">
+          <div class="metrics-mobile-summary">
+            <span class="mobile-summary-pill"><i class="fa-solid fa-stamp" style="color: var(--accent-emerald);"></i> <strong id="mobileSummaryYield">0 pcs</strong></span>
+            <span class="mobile-summary-pill"><i class="fa-solid fa-chart-pie" style="color: var(--accent-cyan);"></i> <strong id="mobileSummaryUtil">0%</strong></span>
+          </div>
+          <button id="metricsExpandBtn" class="metrics-expand-btn" aria-label="Toggle full metrics details" title="Toggle detailed statistics">
+            <span>Stats</span> <i class="fa-solid fa-chevron-up"></i>
+          </button>
         </div>
 
-        <div class="metric-divider"></div>
+        <div class="metrics-items-container">
+          <div class="metric-item">
+            <span class="metric-label">Stickers / Sheet</span>
+            <span class="metric-val highlight-emerald" id="totalYieldCount">0</span>
+          </div>
 
-        <div class="metric-item">
-          <span class="metric-label">Grid Layout</span>
-          <span class="metric-val" id="gridDimensionsLabel" style="font-size: 1rem;">0 × 0</span>
-        </div>
+          <div class="metric-divider"></div>
 
-        <div class="metric-divider"></div>
+          <div class="metric-item">
+            <span class="metric-label">Grid Layout</span>
+            <span class="metric-val" id="gridDimensionsLabel" style="font-size: 1rem;">0 × 0</span>
+          </div>
 
-        <div class="metric-item">
-          <span class="metric-label">Paper Utilization</span>
-          <span class="metric-val highlight-cyan" id="paperUtilPercent">0%</span>
-        </div>
+          <div class="metric-divider"></div>
 
-        <div class="metric-divider"></div>
+          <div class="metric-item">
+            <span class="metric-label">Paper Utilization</span>
+            <span class="metric-val highlight-cyan" id="paperUtilPercent">0%</span>
+          </div>
 
-        <div class="metric-item">
-          <span class="metric-label">Print Area Efficiency</span>
-          <span class="metric-val" id="printUtilPercent">0%</span>
-        </div>
+          <div class="metric-divider"></div>
 
-        <div class="metric-divider"></div>
+          <div class="metric-item">
+            <span class="metric-label">Print Area Efficiency</span>
+            <span class="metric-val" id="printUtilPercent">0%</span>
+          </div>
 
-        <div class="metric-item">
-          <span class="metric-label">Plotter Cut Time</span>
-          <span class="metric-val" id="bottomPlotterTimeLabel" style="color: var(--accent-amber); font-size: 1rem;">0s</span>
+          <div class="metric-divider"></div>
+
+          <div class="metric-item">
+            <span class="metric-label">Plotter Cut Time</span>
+            <span class="metric-val" id="bottomPlotterTimeLabel" style="color: var(--accent-amber); font-size: 1rem;">0s</span>
+          </div>
         </div>
       </div>
 
     </section>
 
   </main>
+
+  <!-- Mobile Bottom Ergonomic Navigation Bar -->
+  <nav class="mobile-bottom-nav">
+    <button id="navBtnConfig" class="mobile-nav-item" title="Open Configuration Studio">
+      <i class="fa-solid fa-sliders"></i>
+      <span>Settings</span>
+    </button>
+    <button id="navBtnPaper" class="mobile-nav-item" title="Paper Size & Margins">
+      <i class="fa-solid fa-scroll"></i>
+      <span>Paper</span>
+    </button>
+    <button id="navBtnStickers" class="mobile-nav-item" title="Sticker Shape & Dimensions">
+      <i class="fa-solid fa-stamp"></i>
+      <span>Stickers</span>
+    </button>
+    <button id="navBtnFit" class="mobile-nav-item" title="Fit Layout to Screen">
+      <i class="fa-solid fa-expand"></i>
+      <span>Fit</span>
+    </button>
+    <button id="navBtnActions" class="mobile-nav-item" title="Export & Production Options">
+      <i class="fa-solid fa-cloud-arrow-down"></i>
+      <span>Export</span>
+    </button>
+  </nav>
+
+  <!-- Mobile Actions Sheet Modal -->
+  <div id="mobileActionsModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card mobile-actions-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div class="brand-icon" style="width: 28px; height: 28px;"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+          <h2 style="font-size: 1.1rem; font-weight: 700;">Export & Production</h2>
+        </div>
+        <button id="closeMobileActionsBtn" class="btn btn-secondary btn-sm" aria-label="Close export sheet"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body" style="gap: 0.85rem;">
+        <div class="mobile-action-section">
+          <span class="form-label" style="margin-bottom: 0.4rem; font-size: 0.72rem; text-transform: uppercase;">Direct Production</span>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <button id="mobilePrintBtn" class="btn btn-primary btn-block">
+              <i class="fa-solid fa-print"></i> 1:1 Scale Print Sheet
+            </button>
+            <button id="mobileExportPngBtn" class="btn btn-secondary btn-block">
+              <i class="fa-solid fa-image"></i> Export 300 DPI High-Res PNG
+            </button>
+            <button id="mobileExportSvgBtn" class="btn btn-secondary btn-block">
+              <i class="fa-solid fa-bezier-curve"></i> Export Vector SVG Cut Lines
+            </button>
+            <button id="mobileJobTicketBtn" class="btn btn-secondary btn-block">
+              <i class="fa-solid fa-file-invoice"></i> View Production Work Order
+            </button>
+          </div>
+        </div>
+
+        <div class="mobile-action-section" style="border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+          <span class="form-label" style="margin-bottom: 0.4rem; font-size: 0.72rem; text-transform: uppercase;">Workspace Preferences</span>
+          <div class="form-group">
+            <label class="form-label">Theme</label>
+            <select id="mobileThemeToggle" class="form-select">
+              <option value="dark">🌙 Dark</option>
+              <option value="slate">🌌 Slate</option>
+              <option value="blueprint">📐 Blueprint</option>
+              <option value="light">☀️ Light</option>
+            </select>
+          </div>
+          <button id="mobileResetDefaultsBtn" class="btn btn-secondary btn-block" style="margin-top: 0.65rem; color: var(--accent-rose);">
+            <i class="fa-solid fa-rotate-left"></i> Reset to Factory Defaults
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div id="jobTicketModal" class="modal-overlay" style="display: none;">
     <div class="modal-card">
@@ -830,8 +958,6 @@
       </div>
     </div>
   </div>
-
-  </main>
 
   <script src="js/presets.js"></script>
   <script src="js/calculator.js"></script>

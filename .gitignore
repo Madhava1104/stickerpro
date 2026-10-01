@@ -4,3 +4,5 @@ Thumbs.db
 *.log
 .env
 .env.local
+public/*
+!public/.gitkeep

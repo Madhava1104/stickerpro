@@ -33,6 +33,7 @@ class ExportManager {
     svg += `    .printable-bracket { stroke: ${bracketColor}; stroke-width: 0.5; fill: none; }\n`;
     svg += `    .kiss-cut { stroke: ${kissColor}; stroke-width: 0.3; stroke-dasharray: 1.5,1; fill: none; }\n`;
     svg += `    .die-cut { stroke: ${dieColor}; stroke-width: 0.35; fill: none; }\n`;
+    svg += `    .cut-line { stroke: ${settings.cutLineColor || '#ef4444'}; stroke-width: 0.35; fill: none; }\n`;
     svg += `    .bleed-line { stroke: ${bleedColor}; stroke-width: 0.2; stroke-dasharray: 1,1; fill: none; }\n`;
     svg += `    .plotter-mark { fill: #000000; stroke: #000000; stroke-width: 0.2; }\n`;
     svg += `    .sticker-num { font-family: sans-serif; font-size: 2.8px; fill: #475569; text-anchor: middle; dominant-baseline: central; }\n`;
@@ -186,6 +187,7 @@ class ExportManager {
 
     const tempRenderer = new SheetCanvasRenderer(offscreen, {
       ...settings,
+      isInteractive: false,
       showRulers: false,
       showGrid: false,
       paperShadow: false,

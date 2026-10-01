@@ -26,6 +26,16 @@ class LayoutCalculator {
       alignment = 'center' 
     } = config;
 
+    const gx = Math.max(0, Number(gapX) >= 0 ? Number(gapX) : 0);
+    const gy = Math.max(0, Number(gapY) >= 0 ? Number(gapY) : 0);
+    const bld = Math.max(0, Number(bleed) >= 0 ? Number(bleed) : 0);
+    const cr = Math.max(0, Number(cornerRadius) >= 0 ? Number(cornerRadius) : 0);
+    const offsetVal = Math.max(0, Number(dieCutOffset) >= 0 ? Number(dieCutOffset) : 0);
+    const imLeft = Math.max(0, Number(innerMarginLeft) || 0);
+    const imRight = Math.max(0, Number(innerMarginRight) || 0);
+    const imTop = Math.max(0, Number(innerMarginTop) || 0);
+    const imBottom = Math.max(0, Number(innerMarginBottom) || 0);
+
     let pw = Number(paperWidth) || 330.2;
     let ph = Number(paperHeight) || 482.6;
     if (paperOrientation === 'landscape' && pw < ph) {
@@ -54,10 +64,10 @@ class LayoutCalculator {
       printOffsetY = printableMarginTop;
     }
 
-    const packAreaW = Math.max(0, printW - (innerMarginLeft + innerMarginRight));
-    const packAreaH = Math.max(0, printH - (innerMarginTop + innerMarginBottom));
-    const packOriginX = printOffsetX + innerMarginLeft;
-    const packOriginY = printOffsetY + innerMarginTop;
+    const packAreaW = Math.max(0, printW - (imLeft + imRight));
+    const packAreaH = Math.max(0, printH - (imTop + imBottom));
+    const packOriginX = printOffsetX + imLeft;
+    const packOriginY = printOffsetY + imTop;
 
     let sw = Math.max(1, Number(stickerWidth) || 50);
     let sh = Math.max(1, Number(stickerHeight) || 50);
@@ -65,19 +75,19 @@ class LayoutCalculator {
       sh = sw;
     }
 
-    const standardRes = this._calcStandard(packAreaW, packAreaH, sw, sh, gapX, gapY, stickerShape, cornerRadius);
-    const rotatedRes = this._calcRotated(packAreaW, packAreaH, sw, sh, gapX, gapY, stickerShape, cornerRadius);
-    const hybridRes = this._calcHybrid(packAreaW, packAreaH, sw, sh, gapX, gapY, stickerShape, cornerRadius);
-    const lShapedRes = this._calcLShapedPacking(packAreaW, packAreaH, sw, sh, gapX, gapY, stickerShape, cornerRadius);
+    const standardRes = this._calcStandard(packAreaW, packAreaH, sw, sh, gx, gy, stickerShape, cr);
+    const rotatedRes = this._calcRotated(packAreaW, packAreaH, sw, sh, gx, gy, stickerShape, cr);
+    const hybridRes = this._calcHybrid(packAreaW, packAreaH, sw, sh, gx, gy, stickerShape, cr);
+    const lShapedRes = this._calcLShapedPacking(packAreaW, packAreaH, sw, sh, gx, gy, stickerShape, cr);
 
     let honeycombRes = null;
     if (stickerShape === 'circle' || stickerShape === 'hexagon') {
-      honeycombRes = this._calcHoneycomb(packAreaW, packAreaH, sw, sh, gapX, gapY, stickerShape, cornerRadius);
+      honeycombRes = this._calcHoneycomb(packAreaW, packAreaH, sw, sh, gx, gy, stickerShape, cr);
     }
 
     let interlockedHexRes = null;
     if (stickerShape === 'hexagon') {
-      interlockedHexRes = this._calcInterlockedHexagon(packAreaW, packAreaH, sw, sh, gapX, gapY, cornerRadius);
+      interlockedHexRes = this._calcInterlockedHexagon(packAreaW, packAreaH, sw, sh, gx, gy, cr);
     }
 
     let selectedResult;
@@ -127,7 +137,7 @@ class LayoutCalculator {
       alignment
     );
 
-    const singleStickerArea = this._getStickerArea(stickerShape, sw, sh);
+    const singleStickerArea = this._getStickerArea(stickerShape, sw, sh, cr);
     const totalStickersArea = singleStickerArea * selectedResult.count;
     const paperArea = pw * ph;
     const printableArea = printW * printH;
@@ -148,8 +158,6 @@ class LayoutCalculator {
       const s = sec % 60;
       return s > 0 ? `${m}m ${s}s` : `${m}m`;
     };
-
-    const offsetVal = Math.max(0, Number(dieCutOffset) || 0);
 
     const enrichedStickers = rawStickers.map(s => {
       const isRot = !!s.rotated;
@@ -451,22 +459,27 @@ class LayoutCalculator {
         const w1 = c1 * sw + (c1 - 1) * gx;
         const h1 = r1 * sh + (r1 - 1) * gy;
 
-        const remW_R = pw - w1 - gx;
-        const cR = remW_R > 0 ? Math.floor((remW_R + gx) / (sh + gx)) : 0;
-        const rR = remW_R > 0 ? Math.floor((ph + gy) / (sw + gy)) : 0;
+        // --- Configuration A: Tall right strip (height ph) + Short bottom strip (width w1) ---
+        const remW_A = pw - w1 - gx;
+        const cR_std_A = remW_A > 0 ? Math.floor((remW_A + gx) / (sw + gx)) : 0;
+        const rR_std_A = remW_A > 0 ? Math.floor((ph + gy) / (sh + gy)) : 0;
+        const cR_rot_A = remW_A > 0 ? Math.floor((remW_A + gx) / (sh + gx)) : 0;
+        const rR_rot_A = remW_A > 0 ? Math.floor((ph + gy) / (sw + gy)) : 0;
+        const useRotR_A = (cR_rot_A * rR_rot_A) >= (cR_std_A * rR_std_A);
+        const cR_A = useRotR_A ? cR_rot_A : cR_std_A;
+        const rR_A = useRotR_A ? rR_rot_A : rR_std_A;
 
-        const remH_B = ph - h1 - gy;
-        const cB_std = remH_B > 0 ? Math.floor((w1 + gx) / (sw + gx)) : 0;
-        const rB_std = remH_B > 0 ? Math.floor((remH_B + gy) / (sh + gy)) : 0;
-        const cB_rot = remH_B > 0 ? Math.floor((w1 + gx) / (sh + gx)) : 0;
-        const rB_rot = remH_B > 0 ? Math.floor((remH_B + gy) / (sw + gy)) : 0;
+        const remH_A = ph - h1 - gy;
+        const cB_std_A = remH_A > 0 ? Math.floor((w1 + gx) / (sw + gx)) : 0;
+        const rB_std_A = remH_A > 0 ? Math.floor((remH_A + gy) / (sh + gy)) : 0;
+        const cB_rot_A = remH_A > 0 ? Math.floor((w1 + gx) / (sh + gx)) : 0;
+        const rB_rot_A = remH_A > 0 ? Math.floor((remH_A + gy) / (sw + gy)) : 0;
+        const useRotB_A = (cB_rot_A * rB_rot_A) > (cB_std_A * rB_std_A);
+        const cB_A = useRotB_A ? cB_rot_A : cB_std_A;
+        const rB_A = useRotB_A ? rB_rot_A : rB_std_A;
 
-        const useRotB = (cB_rot * rB_rot) > (cB_std * rB_std);
-        const cB = useRotB ? cB_rot : cB_std;
-        const rB = useRotB ? rB_rot : rB_std;
-
-        const total1A = (c1 * r1) + (cR * rR) + (cB * rB);
-        if (total1A > bestResult.count) {
+        const totalA = (c1 * r1) + (cR_A * rR_A) + (cB_A * rB_A);
+        if (totalA > bestResult.count) {
           const stickers = [];
           let idx = 1;
 
@@ -487,42 +500,44 @@ class LayoutCalculator {
             }
           }
 
-          const startX_R = w1 + gx;
-          for (let r = 0; r < rR; r++) {
-            for (let c = 0; c < cR; c++) {
+          const rW_A = useRotR_A ? sh : sw;
+          const rH_A = useRotR_A ? sw : sh;
+          const startX_R_A = w1 + gx;
+          for (let r = 0; r < rR_A; r++) {
+            for (let c = 0; c < cR_A; c++) {
               stickers.push({
                 index: idx++,
-                x: startX_R + c * (sh + gx),
-                y: r * (sw + gy),
-                width: sh,
-                height: sw,
+                x: startX_R_A + c * (rW_A + gx),
+                y: r * (rH_A + gy),
+                width: rW_A,
+                height: rH_A,
                 originalWidth: sw,
                 originalHeight: sh,
                 shape,
                 cornerRadius,
-                rotated: true,
+                rotated: useRotR_A,
                 row: r + 1,
                 col: c1 + c + 1
               });
             }
           }
 
-          const startY_B = h1 + gy;
-          const bW = useRotB ? sh : sw;
-          const bH = useRotB ? sw : sh;
-          for (let r = 0; r < rB; r++) {
-            for (let c = 0; c < cB; c++) {
+          const bW_A = useRotB_A ? sh : sw;
+          const bH_A = useRotB_A ? sw : sh;
+          const startY_B_A = h1 + gy;
+          for (let r = 0; r < rB_A; r++) {
+            for (let c = 0; c < cB_A; c++) {
               stickers.push({
                 index: idx++,
-                x: c * (bW + gx),
-                y: startY_B + r * (bH + gy),
-                width: bW,
-                height: bH,
+                x: c * (bW_A + gx),
+                y: startY_B_A + r * (bH_A + gy),
+                width: bW_A,
+                height: bH_A,
                 originalWidth: sw,
                 originalHeight: sh,
                 shape,
                 cornerRadius,
-                rotated: useRotB,
+                rotated: useRotB_A,
                 row: r1 + r + 1,
                 col: c + 1
               });
@@ -530,20 +545,123 @@ class LayoutCalculator {
           }
 
           let boundW = w1;
-          if (cR > 0) boundW = Math.max(boundW, startX_R + cR * sh + (cR - 1) * gx);
-          if (cB > 0) boundW = Math.max(boundW, cB * bW + (cB - 1) * gx);
+          if (cR_A > 0) boundW = Math.max(boundW, startX_R_A + cR_A * rW_A + (cR_A - 1) * gx);
+          if (cB_A > 0) boundW = Math.max(boundW, cB_A * bW_A + (cB_A - 1) * gx);
 
           let boundH = h1;
-          if (rR > 0) boundH = Math.max(boundH, rR * sw + (rR - 1) * gy);
-          if (rB > 0) boundH = Math.max(boundH, startY_B + rB * bH + (rB - 1) * gy);
+          if (rR_A > 0) boundH = Math.max(boundH, rR_A * rH_A + (rR_A - 1) * gy);
+          if (rB_A > 0) boundH = Math.max(boundH, startY_B_A + rB_A * bH_A + (rB_A - 1) * gy);
 
           bestResult = {
-            count: total1A,
+            count: totalA,
             stickers,
             boundWidth: boundW,
             boundHeight: boundH,
-            cols: c1 + cR,
-            rows: Math.max(r1 + rB, rR)
+            cols: Math.max(c1 + cR_A, cB_A),
+            rows: Math.max(r1 + rB_A, rR_A)
+          };
+        }
+
+        // --- Configuration B: Short right strip (height h1) + Wide bottom strip (width pw) ---
+        const remW_B = pw - w1 - gx;
+        const cR_std_B = remW_B > 0 ? Math.floor((remW_B + gx) / (sw + gx)) : 0;
+        const rR_std_B = remW_B > 0 ? Math.floor((h1 + gy) / (sh + gy)) : 0;
+        const cR_rot_B = remW_B > 0 ? Math.floor((remW_B + gx) / (sh + gx)) : 0;
+        const rR_rot_B = remW_B > 0 ? Math.floor((h1 + gy) / (sw + gy)) : 0;
+        const useRotR_B = (cR_rot_B * rR_rot_B) >= (cR_std_B * rR_std_B);
+        const cR_B = useRotR_B ? cR_rot_B : cR_std_B;
+        const rR_B = useRotR_B ? rR_rot_B : rR_std_B;
+
+        const remH_B2 = ph - h1 - gy;
+        const cB_std_B = remH_B2 > 0 ? Math.floor((pw + gx) / (sw + gx)) : 0;
+        const rB_std_B = remH_B2 > 0 ? Math.floor((remH_B2 + gy) / (sh + gy)) : 0;
+        const cB_rot_B = remH_B2 > 0 ? Math.floor((pw + gx) / (sh + gx)) : 0;
+        const rB_rot_B = remH_B2 > 0 ? Math.floor((remH_B2 + gy) / (sw + gy)) : 0;
+        const useRotB_B = (cB_rot_B * rB_rot_B) > (cB_std_B * rB_std_B);
+        const cB_B = useRotB_B ? cB_rot_B : cB_std_B;
+        const rB_B = useRotB_B ? rB_rot_B : rB_std_B;
+
+        const totalB = (c1 * r1) + (cR_B * rR_B) + (cB_B * rB_B);
+        if (totalB > bestResult.count) {
+          const stickers = [];
+          let idx = 1;
+
+          for (let r = 0; r < r1; r++) {
+            for (let c = 0; c < c1; c++) {
+              stickers.push({
+                index: idx++,
+                x: c * (sw + gx),
+                y: r * (sh + gy),
+                width: sw,
+                height: sh,
+                shape,
+                cornerRadius,
+                rotated: false,
+                row: r + 1,
+                col: c + 1
+              });
+            }
+          }
+
+          const rW_B = useRotR_B ? sh : sw;
+          const rH_B = useRotR_B ? sw : sh;
+          const startX_R_B = w1 + gx;
+          for (let r = 0; r < rR_B; r++) {
+            for (let c = 0; c < cR_B; c++) {
+              stickers.push({
+                index: idx++,
+                x: startX_R_B + c * (rW_B + gx),
+                y: r * (rH_B + gy),
+                width: rW_B,
+                height: rH_B,
+                originalWidth: sw,
+                originalHeight: sh,
+                shape,
+                cornerRadius,
+                rotated: useRotR_B,
+                row: r + 1,
+                col: c1 + c + 1
+              });
+            }
+          }
+
+          const bW_B = useRotB_B ? sh : sw;
+          const bH_B = useRotB_B ? sw : sh;
+          const startY_B_B = h1 + gy;
+          for (let r = 0; r < rB_B; r++) {
+            for (let c = 0; c < cB_B; c++) {
+              stickers.push({
+                index: idx++,
+                x: c * (bW_B + gx),
+                y: startY_B_B + r * (bH_B + gy),
+                width: bW_B,
+                height: bH_B,
+                originalWidth: sw,
+                originalHeight: sh,
+                shape,
+                cornerRadius,
+                rotated: useRotB_B,
+                row: r1 + r + 1,
+                col: c + 1
+              });
+            }
+          }
+
+          let boundW = w1;
+          if (cR_B > 0) boundW = Math.max(boundW, startX_R_B + cR_B * rW_B + (cR_B - 1) * gx);
+          if (cB_B > 0) boundW = Math.max(boundW, cB_B * bW_B + (cB_B - 1) * gx);
+
+          let boundH = h1;
+          if (rR_B > 0) boundH = Math.max(boundH, rR_B * rH_B + (rR_B - 1) * gy);
+          if (rB_B > 0) boundH = Math.max(boundH, startY_B_B + rB_B * bH_B + (rB_B - 1) * gy);
+
+          bestResult = {
+            count: totalB,
+            stickers,
+            boundWidth: boundW,
+            boundHeight: boundH,
+            cols: Math.max(c1 + cR_B, cB_B),
+            rows: r1 + rB_B
           };
         }
       }
@@ -657,9 +775,9 @@ class LayoutCalculator {
       return { count: 0, cols: 0, rows: 0, boundWidth: 0, boundHeight: 0, stickers: [] };
     }
 
-    const s = sw / 2;
+    const colPitch = sw + gx;
+    const s = Math.min(sw, sh) / 2;
     const vPitch = 1.5 * s + gy;
-    const hPitch = Math.sqrt(3) * s + gx;
 
     const rows = Math.floor((ph - sh) / vPitch) + 1;
     if (rows <= 0) return { count: 0, cols: 0, rows: 0, boundWidth: 0, boundHeight: 0, stickers: [] };
@@ -670,14 +788,14 @@ class LayoutCalculator {
 
     for (let r = 0; r < rows; r++) {
       const isOdd = r % 2 === 1;
-      const xOffset = isOdd ? hPitch / 2 : 0;
+      const xOffset = isOdd ? colPitch / 2 : 0;
       const y = r * vPitch;
 
       const availW = pw - xOffset;
-      const cols = Math.floor((availW + gx) / (sw + gx));
+      const cols = Math.floor((availW + gx) / colPitch);
 
       for (let c = 0; c < cols; c++) {
-        const x = xOffset + c * (sw + gx);
+        const x = xOffset + c * colPitch;
         maxUsedW = Math.max(maxUsedW, x + sw);
         stickers.push({
           index: idx++,
@@ -697,7 +815,7 @@ class LayoutCalculator {
     const boundH = (rows - 1) * vPitch + sh;
     return {
       count: stickers.length,
-      cols: Math.floor((pw + gx) / (sw + gx)),
+      cols: Math.floor((pw + gx) / colPitch),
       rows,
       boundWidth: maxUsedW,
       boundHeight: boundH,
@@ -721,7 +839,7 @@ class LayoutCalculator {
     }));
   }
 
-  static _getStickerArea(shape, w, h) {
+  static _getStickerArea(shape, w, h, cornerRadius = 0) {
     if (shape === 'circle') {
       const r = w / 2;
       return Math.PI * r * r;
@@ -730,8 +848,12 @@ class LayoutCalculator {
       return Math.PI * (w / 2) * (h / 2);
     }
     if (shape === 'hexagon') {
-      const s = w / 2;
+      const s = Math.min(w, h) / 2;
       return (3 * Math.sqrt(3) / 2) * s * s;
+    }
+    if (shape === 'round_rect' && cornerRadius > 0) {
+      const r = Math.min(cornerRadius, w / 2, h / 2);
+      return (w * h) - (4 - Math.PI) * r * r;
     }
     return w * h;
   }

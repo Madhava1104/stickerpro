@@ -81,8 +81,19 @@ class SheetCanvasRenderer {
       ...options
     };
 
+    this.isInteractive = options.isInteractive !== false;
     this.layoutData = null;
-    this._initEvents();
+    this.resizeObserver = null;
+    if (this.isInteractive) {
+      this._initEvents();
+    }
+  }
+
+  destroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
   }
 
   _initEvents() {
@@ -162,24 +173,41 @@ class SheetCanvasRenderer {
       this.render();
     }, { passive: false });
 
+    el.style.touchAction = 'none';
     let touchStartDist = 0;
+    let touchStartTime = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouchDragging = false;
+
     el.addEventListener('touchstart', (e) => {
+      touchStartTime = Date.now();
       if (e.touches.length === 1) {
         this.isPanning = true;
+        isTouchDragging = false;
         this.lastMouseX = e.touches[0].clientX;
         this.lastMouseY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
       } else if (e.touches.length === 2) {
         this.isPanning = false;
+        isTouchDragging = true;
         touchStartDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
       }
-    });
+    }, { passive: true });
 
     el.addEventListener('touchmove', (e) => {
       e.preventDefault();
       if (e.touches.length === 1 && this.isPanning) {
+        const moveDist = Math.hypot(
+          e.touches[0].clientX - touchStartX,
+          e.touches[0].clientY - touchStartY
+        );
+        if (moveDist > 6) isTouchDragging = true;
+
         const dx = (e.touches[0].clientX - this.lastMouseX) * this.dpr;
         const dy = (e.touches[0].clientY - this.lastMouseY) * this.dpr;
         this.panX += dx;
@@ -188,26 +216,55 @@ class SheetCanvasRenderer {
         this.lastMouseY = e.touches[0].clientY;
         this.render();
       } else if (e.touches.length === 2) {
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const zoom = dist / touchStartDist;
-        touchStartDist = dist;
-        this.scale = Math.min(Math.max(this.scale * zoom, 0.15), 15);
-        this.render();
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        if (touchStartDist > 0 && dist > 0) {
+          const zoomFactor = dist / touchStartDist;
+          touchStartDist = dist;
+
+          const midX = (t1.clientX + t2.clientX) / 2;
+          const midY = (t1.clientY + t2.clientY) / 2;
+          const rect = el.getBoundingClientRect();
+          const mouseCanvasX = (midX - rect.left) * this.dpr;
+          const mouseCanvasY = (midY - rect.top) * this.dpr;
+
+          const newScale = Math.min(Math.max(this.scale * zoomFactor, 0.15), 15);
+          this.panX = mouseCanvasX - (mouseCanvasX - this.panX) * (newScale / this.scale);
+          this.panY = mouseCanvasY - (mouseCanvasY - this.panY) * (newScale / this.scale);
+          this.scale = newScale;
+          this.render();
+        }
       }
     }, { passive: false });
 
-    el.addEventListener('touchend', () => {
+    el.addEventListener('touchend', (e) => {
       this.isPanning = false;
+
+      // Tap detection for inspecting stickers on touch devices
+      const duration = Date.now() - touchStartTime;
+      if (!isTouchDragging && duration < 350 && e.changedTouches.length === 1) {
+        const touch = e.changedTouches[0];
+        const rect = el.getBoundingClientRect();
+        const touchCanvasX = (touch.clientX - rect.left) * this.dpr;
+        const touchCanvasY = (touch.clientY - rect.top) * this.dpr;
+        const touchMmX = (touchCanvasX - this.panX) / this.scale;
+        const touchMmY = (touchCanvasY - this.panY) / this.scale;
+
+        const tappedSticker = this._findStickerAt(touchMmX, touchMmY);
+        this.hoveredSticker = tappedSticker;
+        this.render();
+        if (this.onHoverSticker) {
+          this.onHoverSticker(tappedSticker, touch.clientX, touch.clientY);
+        }
+      }
     });
 
-    const resizeObserver = new ResizeObserver(() => {
+    this.resizeObserver = new ResizeObserver(() => {
       this.resizeCanvas();
       this.render();
     });
-    resizeObserver.observe(el.parentElement || el);
+    this.resizeObserver.observe(el.parentElement || el);
   }
 
   _findStickerAt(xMm, yMm) {
@@ -232,12 +289,13 @@ class SheetCanvasRenderer {
 
   resizeCanvas() {
     const parent = this.canvas.parentElement;
-    const width = parent ? parent.clientWidth : 800;
-    const height = parent ? parent.clientHeight : 600;
+    const width = parent ? parent.clientWidth : (window.innerWidth || 800);
+    const height = parent ? parent.clientHeight : (window.innerHeight || 600);
 
-    this.dpr = window.devicePixelRatio || 1;
-    this.canvas.width = width * this.dpr;
-    this.canvas.height = height * this.dpr;
+    // Limit DPR on mobile to 2.5 to preserve 60fps animation without GPU thrashing
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    this.canvas.width = Math.round(width * this.dpr);
+    this.canvas.height = Math.round(height * this.dpr);
     this.canvas.style.width = `${width}px`;
     this.canvas.style.height = `${height}px`;
   }
@@ -285,8 +343,12 @@ class SheetCanvasRenderer {
     const paperW_mm = this.layoutData.paper.width;
     const paperH_mm = this.layoutData.paper.height;
 
-    const availableW = canvasW - (padding * 2 * this.dpr);
-    const availableH = canvasH - (padding * 2 * this.dpr);
+    // Adapt padding based on viewport size for maximum visibility on phones
+    const isMobile = window.innerWidth <= 768;
+    const effPadding = isMobile ? Math.min(padding, 18) : padding;
+
+    const availableW = canvasW - (effPadding * 2 * this.dpr);
+    const availableH = canvasH - (effPadding * 2 * this.dpr);
 
     const scaleX = availableW / paperW_mm;
     const scaleY = availableH / paperH_mm;
@@ -763,9 +825,9 @@ class SheetCanvasRenderer {
     targetH *= userScale;
 
     if (isRotated) {
-      ctx.translate(sx + sw / 2, sy + sh / 2);
+      ctx.translate(sx + sw / 2 + userOffX, sy + sh / 2 + userOffY);
       ctx.rotate(Math.PI / 2);
-      ctx.drawImage(img, -targetW / 2 + userOffX, -targetH / 2 + userOffY, targetW, targetH);
+      ctx.drawImage(img, -targetW / 2, -targetH / 2, targetW, targetH);
     } else {
       const drawX = sx + (sw - targetW) / 2 + userOffX;
       const drawY = sy + (sh - targetH) / 2 + userOffY;
@@ -802,7 +864,16 @@ class SheetCanvasRenderer {
       ctx.closePath();
     } else if (shape === 'round_rect' && cornerRadius > 0) {
       const r = Math.min(cornerRadius, w / 2, h / 2);
-      ctx.roundRect(x, y, w, h, r);
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(x, y, w, h, r);
+      } else {
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+      }
     } else {
       ctx.rect(x, y, w, h);
     }
@@ -919,9 +990,20 @@ class SheetCanvasRenderer {
   exportHighResPNG(dpi = 300) {
     if (!this.layoutData) return null;
 
-    const dpmm = dpi / 25.4;
-    const exportW = Math.round(this.layoutData.paper.width * dpmm);
-    const exportH = Math.round(this.layoutData.paper.height * dpmm);
+    let effectiveDpi = Math.max(72, Number(dpi) || 300);
+    let dpmm = effectiveDpi / 25.4;
+    let exportW = Math.round(this.layoutData.paper.width * dpmm);
+    let exportH = Math.round(this.layoutData.paper.height * dpmm);
+
+    // Clamp maximum dimension to 4096px to prevent mobile/browser canvas memory crashes
+    const maxDim = 4096;
+    if (exportW > maxDim || exportH > maxDim) {
+      const scaleDown = maxDim / Math.max(exportW, exportH);
+      effectiveDpi = Math.floor(effectiveDpi * scaleDown);
+      dpmm = effectiveDpi / 25.4;
+      exportW = Math.round(this.layoutData.paper.width * dpmm);
+      exportH = Math.round(this.layoutData.paper.height * dpmm);
+    }
 
     const offscreen = document.createElement('canvas');
     offscreen.width = exportW;
@@ -929,6 +1011,7 @@ class SheetCanvasRenderer {
 
     const tempRenderer = new SheetCanvasRenderer(offscreen, {
       ...this.settings,
+      isInteractive: false,
       showRulers: false,
       showGrid: false,
       paperShadow: false
