@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StickerPro Studio — Print Shop Sticker Sheet Layout Simulator & Optimizer</title>
+  <meta name="description" content="High-precision sticker sheet layout simulator and yield optimizer for digital printing shops. Calculates optimal standard, rotated, and hybrid layouts with millimeter accuracy.">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-icon">
+        <i class="fa-solid fa-shapes"></i>
+      </div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="brand-title">StickerPro Studio</span>
+          <span class="brand-tag">PRO SHOP</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center-info">
+      <div class="badge-pill">
+        <span class="dot"></span>
+        <span>Real-Time Engine Active</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.25rem; background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: var(--radius-full); border: 1px solid var(--border-color);">
+        <label style="font-size: 0.725rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">UNIT:</label>
+        <label style="cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem;">
+          <input type="radio" name="unitRadio" value="mm" checked style="accent-color: var(--primary);"> mm
+        </label>
+        <label style="cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem;">
+          <input type="radio" name="unitRadio" value="in" style="accent-color: var(--primary);"> in
+        </label>
+        <label style="cursor: pointer; font-size: 0.75rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 4px; display: flex; align-items: center; gap: 0.2rem;">
+          <input type="radio" name="unitRadio" value="cm" style="accent-color: var(--primary);"> cm
+        </label>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.25rem; background: var(--bg-card); padding: 0.25rem 0.6rem; border-radius: var(--radius-full); border: 1px solid var(--border-color);">
+        <label style="font-size: 0.725rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">CURRENCY:</label>
+        <select id="currencySelect" style="background: transparent; border: none; font-size: 0.75rem; font-weight: 700; color: var(--accent-emerald); cursor: pointer; outline: none;">
+          <option value="₹" selected>₹ INR (Rupees)</option>
+          <option value="$">$ USD</option>
+          <option value="€">€ EUR</option>
+          <option value="£">£ GBP</option>
+          <option value="AED">AED</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      
+      <span id="storageSavedBadge" style="display: flex; align-items: center; gap: 0.3rem; font-size: 0.725rem; font-weight: 700; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.25rem 0.6rem; border-radius: var(--radius-full); transition: opacity 0.3s ease;">
+        <i class="fa-solid fa-floppy-disk"></i> Auto-Saved
+      </span>
+
+      <select id="themeToggle" class="form-select" style="width: auto; padding: 0.35rem 0.65rem; font-size: 0.75rem;">
+        <option value="dark">🌙 Dark Theme</option>
+        <option value="slate">🌌 Slate Studio</option>
+        <option value="blueprint">📐 Blueprint</option>
+        <option value="light">☀️ Clean Light</option>
+      </select>
+
+      <button id="resetDefaultsBtn" class="btn btn-secondary btn-sm" title="Reset all custom settings & dimensions to factory defaults" style="color: var(--text-muted);">
+        <i class="fa-solid fa-rotate-left"></i> Reset Defaults
+      </button>
+
+      <button id="exportSvgBtn" class="btn btn-secondary btn-sm" title="Export Vector SVG Cut Lines">
+        <i class="fa-solid fa-bezier-curve"></i> SVG Cuts
+      </button>
+      <button id="exportPngBtn" class="btn btn-secondary btn-sm" title="Export 300 DPI High-Res PNG">
+        <i class="fa-solid fa-image"></i> 300 DPI PNG
+      </button>
+      <button id="printSheetBtn" class="btn btn-primary btn-sm" title="Direct 1:1 Scale Print">
+        <i class="fa-solid fa-print"></i> 1:1 Print Sheet
+      </button>
+    </div>
+  </header>
+
+  <main class="app-workspace">
+
+    <aside class="sidebar" id="sidebarPanel">
+
+      <div class="sidebar-tabs">
+        <button class="tab-btn active" data-target="tabPaper">
+          <i class="fa-solid fa-scroll"></i>
+          <span>Paper</span>
+        </button>
+        <button class="tab-btn" data-target="tabStickers">
+          <i class="fa-solid fa-stamp"></i>
+          <span>Stickers</span>
+        </button>
+        <button class="tab-btn" data-target="tabVisuals">
+          <i class="fa-solid fa-palette"></i>
+          <span>Visuals</span>
+        </button>
+        <button class="tab-btn" data-target="tabPricing">
+          <i class="fa-solid fa-calculator"></i>
+          <span>Estimator</span>
+        </button>
+      </div>
+
+      <div class="sidebar-content">
+
+        <div class="tab-pane active" id="tabPaper">
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-file-lines"></i> Physical Paper Sheet</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Paper Size Preset</label>
+              <select id="paperPresetSelect" class="form-select"></select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Sheet Orientation</label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <label style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
+                  <input type="radio" name="paperOrientation" value="portrait" checked style="accent-color: var(--primary);">
+                  <i class="fa-solid fa-arrows-up-down"></i> Portrait
+                </label>
+                <label style="background: var(--bg-input); border: 1px solid var(--border-color); padding: 0.5rem; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 0.5rem; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
+                  <input type="radio" name="paperOrientation" value="landscape" style="accent-color: var(--primary);">
+                  <i class="fa-solid fa-arrows-left-right"></i> Landscape
+                </label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Sheet Width <span class="unit-tag">mm</span></label>
+                <input type="number" id="paperWidthInput" class="form-input" value="330.2" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sheet Height <span class="unit-tag">mm</span></label>
+                <input type="number" id="paperHeightInput" class="form-input" value="482.6" step="0.1">
+              </div>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-crop-simple"></i> Machine Printable Area</span>
+              <span style="font-size: 0.7rem; color: var(--accent-cyan); font-weight: 600;">e.g. 12.5" × 18.5" on 13"×19"</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Printable Width <span class="unit-tag">mm</span></label>
+                <input type="number" id="printableWidthInput" class="form-input" value="317.5" step="0.1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Printable Height <span class="unit-tag">mm</span></label>
+                <input type="number" id="printableHeightInput" class="form-input" value="469.9" step="0.1">
+              </div>
+            </div>
+
+            <div style="background: var(--bg-input); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.25rem;">
+              <div class="toggle-row">
+                <span class="toggle-label"><i class="fa-solid fa-vector-square" style="color: var(--primary);"></i> Corner Angle Brackets (┌ ┐ └ ┘)</span>
+                <label class="switch">
+                  <input type="checkbox" id="showAngleBracketsToggle" checked>
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label class="form-label">Bracket mm</label>
+                  <input type="number" id="bracketLengthInput" class="form-input" value="12" min="2" max="50">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Stroke px</label>
+                  <input type="number" id="bracketThicknessInput" class="form-input" value="2" min="1" max="8">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Bracket Color</label>
+                  <div class="color-input-wrapper">
+                    <input type="color" id="bracketColorInput" value="#2563eb">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-border-all"></i> Inner Padding Margins</span>
+            </div>
+
+            <div class="form-row-4">
+              <div class="form-group">
+                <label class="form-label">Top</label>
+                <input type="number" id="innerMarginTop" class="form-input" value="0" min="0" step="0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bottom</label>
+                <input type="number" id="innerMarginBottom" class="form-input" value="0" min="0" step="0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Left</label>
+                <input type="number" id="innerMarginLeft" class="form-input" value="0" min="0" step="0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Right</label>
+                <input type="number" id="innerMarginRight" class="form-input" value="0" min="0" step="0.5">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="tab-pane" id="tabStickers">
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-shapes"></i> Sticker Preset & Shape</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Quick Preset</label>
+              <select id="stickerPresetSelect" class="form-select"></select>
+            </div>
+
+            <div class="shape-selector-grid">
+              <div class="shape-option-btn active" data-shape="circle">
+                <i class="fa-regular fa-circle"></i>
+                <span>Circle</span>
+              </div>
+              <div class="shape-option-btn" data-shape="square">
+                <i class="fa-regular fa-square"></i>
+                <span>Square</span>
+              </div>
+              <div class="shape-option-btn" data-shape="rectangle">
+                <i class="fa-regular fa-rectangle-list"></i>
+                <span>Rectangle</span>
+              </div>
+              <div class="shape-option-btn" data-shape="round_rect">
+                <i class="fa-solid fa-square-envelope"></i>
+                <span>Round Rect</span>
+              </div>
+              <div class="shape-option-btn" data-shape="oval">
+                <i class="fa-solid fa-egg"></i>
+                <span>Oval</span>
+              </div>
+              <div class="shape-option-btn" data-shape="hexagon">
+                <i class="fa-solid fa-cube"></i>
+                <span>Hexagon</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-ruler-combined"></i> Sticker Dimensions</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" id="stickerWidthGroup">
+                <label class="form-label">Width / Diameter <span class="unit-tag">mm</span></label>
+                <input type="number" id="stickerWidthInput" class="form-input" value="50.8" step="0.5">
+              </div>
+              <div class="form-group" id="stickerHeightGroup" style="display: none;">
+                <label class="form-label">Height <span class="unit-tag">mm</span></label>
+                <input type="number" id="stickerHeightInput" class="form-input" value="50.8" step="0.5">
+              </div>
+            </div>
+
+            <div class="form-group" id="cornerRadiusGroup" style="display: none;">
+              <label class="form-label">Corner Radius <span class="unit-tag">mm</span></label>
+              <input type="number" id="cornerRadiusInput" class="form-input" value="4" min="0" step="0.5">
+            </div>
+
+            <div class="card-title-row" style="margin-top: 0.5rem;">
+              <span class="form-label">Spacing / Gutter Between Stickers</span>
+              <label style="font-size: 0.7rem; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+                <input type="checkbox" id="linkGapsCheck" checked style="accent-color: var(--primary);"> Link 1:1
+              </label>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Horizontal Gap <span class="unit-tag">mm</span></label>
+                <input type="number" id="gapXInput" class="form-input" value="2.5" min="0" step="0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Vertical Gap <span class="unit-tag">mm</span></label>
+                <input type="number" id="gapYInput" class="form-input" value="2.5" min="0" step="0.5">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Bleed Margin per Sticker <span class="unit-tag">mm</span></label>
+              <input type="number" id="bleedInput" class="form-input" value="1.5" min="0" step="0.5">
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Optimization Strategy</span>
+            </div>
+
+            <div class="strategy-cards">
+              <div class="strategy-card active" data-mode="auto">
+                <div class="strategy-card-info">
+                  <span class="strategy-name">⚡ Auto Best-Yield (Recommended)</span>
+                  <span class="strategy-desc">Automatically selects the layout with maximum sticker count</span>
+                </div>
+              </div>
+
+              <div class="strategy-card" data-mode="standard">
+                <div class="strategy-card-info">
+                  <span class="strategy-name">Standard Natural Grid</span>
+                  <span class="strategy-desc">Original sticker orientation</span>
+                </div>
+                <span class="strategy-badge" id="standardCountBadge">0 pcs</span>
+              </div>
+
+              <div class="strategy-card" data-mode="rotated">
+                <div class="strategy-card-info">
+                  <span class="strategy-name">Rotated 90° Grid</span>
+                  <span class="strategy-desc">All stickers rotated 90 degrees</span>
+                </div>
+                <span class="strategy-badge" id="rotatedCountBadge">0 pcs</span>
+              </div>
+
+              <div class="strategy-card" data-mode="hybrid">
+                <div class="strategy-card-info">
+                  <span class="strategy-name">Hybrid Mixed Packing</span>
+                  <span class="strategy-desc">Fills leftover margin space with rotated stickers</span>
+                </div>
+                <span class="strategy-badge" id="hybridCountBadge">0 pcs</span>
+              </div>
+
+              <div class="strategy-card" data-mode="lshaped">
+                <div class="strategy-card-info">
+                  <span class="strategy-name">L-Shaped 3-Zone Packing</span>
+                  <span class="strategy-desc">Nests residual strips along both edge axes</span>
+                </div>
+                <span class="strategy-badge" id="lshapedCountBadge">0 pcs</span>
+              </div>
+
+              <div class="strategy-card" data-mode="honeycomb">
+                <div class="strategy-card-info">
+                  <span class="strategy-name">Honeycomb Offset (Circles)</span>
+                  <span class="strategy-desc">Staggered hexagonal packing for circles/hexagons</span>
+                </div>
+                <span class="strategy-badge" id="honeycombCountBadge">0 pcs</span>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 0.5rem;">
+              <label class="form-label">Sheet Alignment</label>
+              <select id="alignmentSelect" class="form-select">
+                <option value="center">Centered on Sheet</option>
+                <option value="top-left">Top-Left Aligned</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="tab-pane" id="tabVisuals">
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-gem"></i> Vinyl Material & Finish</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Material Surface Simulation</label>
+              <select id="materialFinishSelect" class="form-select">
+                <option value="gloss" selected>✨ Gloss White Vinyl (Specular)</option>
+                <option value="matte">🌫️ Matte Vinyl (Smooth Diffuse)</option>
+                <option value="holographic">🌈 Holographic / Rainbow Chrome</option>
+                <option value="clear">🏁 Clear / Transparent Vinyl</option>
+                <option value="kraft">📦 Natural Kraft Paper</option>
+                <option value="gold_foil">🥇 Brushed Gold Metallic</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-scissors"></i> Dual Cut Contours</span>
+              <span style="font-size: 0.7rem; color: var(--primary); font-weight: 700;">PRO DIE LINE</span>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-border-outer" style="color: var(--accent-rose);"></i> Backing Die-Cut (Through-Cut)</span>
+              <label class="switch">
+                <input type="checkbox" id="showDieCutToggle" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Peel Border Offset <span class="unit-tag">mm</span></label>
+                <input type="number" id="dieCutOffsetInput" class="form-input" value="2.5" min="0" max="15" step="0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Die-Cut Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="dieCutColorInput" value="#ef4444">
+                </div>
+              </div>
+            </div>
+
+            <div class="toggle-row" style="margin-top: 0.5rem;">
+              <span class="toggle-label"><i class="fa-solid fa-circle-dot" style="color: #ec4899;"></i> Vinyl Kiss-Cut (Peel Line)</span>
+              <label class="switch">
+                <input type="checkbox" id="showKissCutToggle" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Kiss-Cut Style</label>
+                <select id="kissCutStyleSelect" class="form-select">
+                  <option value="dashed" selected>Dashed Line</option>
+                  <option value="solid">Solid Line</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Kiss-Cut Color</label>
+                <div class="color-input-wrapper">
+                  <input type="color" id="kissCutColorInput" value="#ec4899">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-cloud-arrow-up"></i> Custom Sticker Artwork</span>
+            </div>
+
+            <div class="file-dropzone" id="artworkDropzone">
+              <i class="fa-solid fa-image"></i>
+              <span>Click or drag sticker artwork (PNG, JPG, SVG)</span>
+              <input type="file" id="artworkFileInput" accept="image/*" style="display: none;">
+            </div>
+
+            <button id="removeArtworkBtn" class="btn btn-secondary btn-sm" style="display: none; width: 100%;">
+              <i class="fa-solid fa-trash"></i> Remove Artwork
+            </button>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-tag"></i> Sheet Production Job Slug</span>
+            </div>
+            <div class="toggle-row">
+              <span class="toggle-label">Print Header Metadata in Margin</span>
+              <label class="switch">
+                <input type="checkbox" id="showJobSlugToggle" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Job Name / ID</label>
+                <input type="text" id="jobNameInput" class="form-input" value="Sticker Run #1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Client Name</label>
+                <input type="text" id="customerNameInput" class="form-input" value="Standard Print Client">
+              </div>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-layer-group"></i> Layer & Guide Toggles</span>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-crop"></i> Printable Area Bounds</span>
+              <label class="switch">
+                <input type="checkbox" id="showPrintableAreaToggle" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-list-ol"></i> Sticker Index Numbers</span>
+              <label class="switch">
+                <input type="checkbox" id="showStickerNumbersToggle" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-shield-halved"></i> Bleed Guide Outlines</span>
+              <label class="switch">
+                <input type="checkbox" id="showBleedToggle" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-ruler-horizontal"></i> Real Dimensions & Rulers</span>
+              <label class="switch">
+                <input type="checkbox" id="showRulersToggle" checked>
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-table-cells"></i> Canvas Background Grid</span>
+              <label class="switch">
+                <input type="checkbox" id="showGridToggle">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+
+            <div class="toggle-row">
+              <span class="toggle-label"><i class="fa-solid fa-crosshairs"></i> Vinyl Cutter Registration Marks</span>
+              <label class="switch">
+                <input type="checkbox" id="showPlotterMarksToggle">
+                <span class="slider-round"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-eye-dropper"></i> Colors & Stroke Styling</span>
+            </div>
+
+            <div class="color-picker-item">
+              <span class="color-picker-label">Bleed Outline Color</span>
+              <div class="color-input-wrapper">
+                <input type="color" id="bleedLineColorInput" value="#10b981">
+              </div>
+            </div>
+
+            <div class="color-picker-item">
+              <span class="color-picker-label">Sticker Mockup Fill</span>
+              <div class="color-input-wrapper">
+                <input type="color" id="stickerFillColorInput" value="#f1f5f9">
+              </div>
+            </div>
+
+            <div class="color-picker-item">
+              <span class="color-picker-label">Sticker Number Color</span>
+              <div class="color-input-wrapper">
+                <input type="color" id="numberColorInput" value="#334155">
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="tab-pane" id="tabPricing">
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-boxes-stacked"></i> Customer Order Quantity</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Required Stickers</label>
+              <input type="number" id="targetQuantityInput" class="form-input" value="500" min="1" step="10">
+            </div>
+
+            <div style="background: var(--bg-input); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Sheets to Print:</span>
+                <strong id="sheetsNeededVal" style="color: var(--accent-cyan); font-family: var(--font-mono);">0 sheets</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Total Output:</span>
+                <strong id="totalProducedVal" style="font-family: var(--font-mono);">0 pcs</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-gauge-high"></i> Plotter Cut Time Estimator</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cutter Speed (mm/s)</label>
+              <input type="number" id="plotterSpeedInput" class="form-input" value="300" min="50" max="1000" step="50">
+            </div>
+
+            <div style="background: var(--bg-input); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.45rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Cut Path / Sticker:</span>
+                <strong id="cutPerimStickerVal" style="font-family: var(--font-mono);">0 mm</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Cut Line / Sheet:</span>
+                <strong id="cutDistSheetVal" style="font-family: var(--font-mono); color: var(--accent-cyan);">0.00 m</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Total Batch Cut Length:</span>
+                <strong id="cutDistBatchVal" style="font-family: var(--font-mono);">0.00 m</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; border-top: 1px solid var(--border-color); padding-top: 0.35rem;">
+                <span>Plotter Time / Sheet:</span>
+                <strong id="plotterTimeVal" style="color: var(--accent-amber); font-family: var(--font-mono);">0s</strong>
+              </div>
+            </div>
+
+            <button id="openJobTicketBtn" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 0.65rem;">
+              <i class="fa-solid fa-file-invoice"></i> View Production Job Ticket
+            </button>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-coins"></i> Production Costs (Per Sheet)</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Paper Sheet Cost (<span class="curr-tag">₹</span>)</label>
+                <input type="number" id="paperCostInput" class="form-input" value="12.00" min="0" step="0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Print / Toner Cost (<span class="curr-tag">₹</span>)</label>
+                <input type="number" id="printCostInput" class="form-input" value="18.00" min="0" step="0.5">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Lamination Cost (<span class="curr-tag">₹</span>)</label>
+                <input type="number" id="laminationCostInput" class="form-input" value="6.00" min="0" step="0.5">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Plotter Cut Labor (<span class="curr-tag">₹</span>)</label>
+                <input type="number" id="cuttingCostInput" class="form-input" value="8.00" min="0" step="0.5">
+              </div>
+            </div>
+          </div>
+
+          <div class="control-card">
+            <div class="card-title-row">
+              <span class="card-title"><i class="fa-solid fa-hand-holding-dollar"></i> Pricing & Profit Breakdown</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Quoted Price (Per Sticker) (<span class="curr-tag">₹</span>)</label>
+              <input type="number" id="pricePerStickerInput" class="form-input" value="3.50" min="0" step="0.1">
+            </div>
+
+            <div style="background: var(--bg-input); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.65rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Cost Per Sheet:</span>
+                <span id="costPerSheetVal" style="font-family: var(--font-mono); font-weight: 600;">₹0.00</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Unit Cost:</span>
+                <span id="unitCostVal" style="font-family: var(--font-mono); font-weight: 600;">₹0.00 / pc</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Total Job Cost:</span>
+                <span id="totalJobCostVal" style="font-family: var(--font-mono); font-weight: 600; color: var(--accent-rose);">₹0.00</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8rem;">
+                <span style="color: var(--text-muted);">Total Job Revenue:</span>
+                <span id="totalRevenueVal" style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-cyan);">₹0.00</span>
+              </div>
+              <div style="border-top: 1px solid var(--border-color); padding-top: 0.5rem; display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 800;">
+                <span>Estimated Net Profit:</span>
+                <span id="netProfitVal" style="color: var(--accent-emerald); font-family: var(--font-mono);">₹0.00</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </aside>
+
+    <section class="canvas-viewport" id="canvasContainer">
+
+      <canvas id="sheetCanvas"></canvas>
+
+      <div id="hoverInspectionTooltip" class="canvas-inspect-badge" style="display: none;"></div>
+
+      <div class="floating-presets-bar">
+        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">Quick Sheet:</span>
+        <div class="preset-chip active" data-preset="super_a3">13"×19" Super A3</div>
+        <div class="preset-chip" data-preset="sra3">SRA3</div>
+        <div class="preset-chip" data-preset="a3">A3</div>
+        <div class="preset-chip" data-preset="a4">A4</div>
+        <div class="preset-chip" data-preset="tabloid">11"×17" Tabloid</div>
+        <div class="preset-chip" data-preset="letter">Letter</div>
+      </div>
+
+      <div class="canvas-hud-toolbar">
+        <button id="zoomInBtn" class="hud-btn" title="Zoom In (or Scroll Wheel Up)"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+        <button id="zoomOutBtn" class="hud-btn" title="Zoom Out (or Scroll Wheel Down)"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+        <div class="hud-divider"></div>
+        <button id="fitScreenBtn" class="hud-btn" title="Fit Paper to Screen"><i class="fa-solid fa-expand"></i></button>
+        <button id="actualScaleBtn" class="hud-btn" title="1:1 Actual Millimeter Scale"><i class="fa-solid fa-ruler"></i></button>
+        <button id="resetViewBtn" class="hud-btn" title="Reset View"><i class="fa-solid fa-rotate-left"></i></button>
+      </div>
+
+      <div class="bottom-metrics-bar">
+        <div class="metric-item">
+          <span class="metric-label">Stickers / Sheet</span>
+          <span class="metric-val highlight-emerald" id="totalYieldCount">0</span>
+        </div>
+
+        <div class="metric-divider"></div>
+
+        <div class="metric-item">
+          <span class="metric-label">Grid Layout</span>
+          <span class="metric-val" id="gridDimensionsLabel" style="font-size: 1rem;">0 × 0</span>
+        </div>
+
+        <div class="metric-divider"></div>
+
+        <div class="metric-item">
+          <span class="metric-label">Paper Utilization</span>
+          <span class="metric-val highlight-cyan" id="paperUtilPercent">0%</span>
+        </div>
+
+        <div class="metric-divider"></div>
+
+        <div class="metric-item">
+          <span class="metric-label">Print Area Efficiency</span>
+          <span class="metric-val" id="printUtilPercent">0%</span>
+        </div>
+
+        <div class="metric-divider"></div>
+
+        <div class="metric-item">
+          <span class="metric-label">Plotter Cut Time</span>
+          <span class="metric-val" id="bottomPlotterTimeLabel" style="color: var(--accent-amber); font-size: 1rem;">0s</span>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <div id="jobTicketModal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div class="brand-icon" style="width: 28px; height: 28px;"><i class="fa-solid fa-file-invoice"></i></div>
+          <h2 style="font-size: 1.1rem; font-weight: 700;">Production Job Ticket & Work Order</h2>
+        </div>
+        <button id="closeJobTicketBtn" class="btn btn-secondary btn-sm"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body" id="jobTicketContent">
+        
+      </div>
+
+      <div class="modal-footer">
+        <button id="printJobTicketBtn" class="btn btn-primary"><i class="fa-solid fa-print"></i> Print Work Order</button>
+        <button id="dismissJobTicketBtn" class="btn btn-secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  </main>
+
+  <script src="js/presets.js"></script>
+  <script src="js/calculator.js"></script>
+  <script src="js/canvas.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "name": "sticker-counter-studio",
+  "version": "1.0.0",
+  "description": "Print Shop Sticker Sheet Layout Simulator & Yield Optimizer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "serve": "npx serve ."
+  },
+  "keywords": [
+    "sticker-counter",
+    "print-shop",
+    "layout-optimizer",
+    "die-cut",
+    "canvas"
+  ],
+  "author": "",
+  "license": "MIT"
+}
