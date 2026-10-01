@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const cliPort = process.argv[2] && !isNaN(process.argv[2]) ? parseInt(process.argv[2]) : null;
-const PORT = cliPort || process.env.PORT || 1234;
+const PORT = cliPort || process.env.PORT || 7259;
 const ROOT_DIR = __dirname;
 
 const MIME_TYPES = {
